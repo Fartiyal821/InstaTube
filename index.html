@@ -87,7 +87,7 @@ video, img, audio { max-width:100%; height:auto; border-radius:8px; display:bloc
           <button class="action btn-red" type="submit">Publish</button>
           <button class="action btn-dark" type="button" id="clearLocal">Clear Local Storage</button>
         </div>
-        <p class="small" style="margin-top:8px;opacity:0.8">Note: For demonstration, images & audio are saved as data-URLs so they persist across reloads. Video files are stored using blob URLs (may not persist between browser sessions).</p>
+        <p class="small" style="margin-top:8px;opacity:0.8">Note: Images & audio are saved as data-URLs. Videos stored as blob URLs (may not persist if deleted).</p>
       </form>
     </section>
 
@@ -112,7 +112,14 @@ video, img, audio { max-width:100%; height:auto; border-radius:8px; display:bloc
       <div class="card">
         <p><b>Stream Key:</b> <span id="streamKey">—</span></p>
         <button class="action btn-red" id="genKey">Generate Stream Key</button>
-        <p class="small" style="margin-top:10px;opacity:0.8">Use this key in OBS Studio (Settings &gt; Stream &gt; Service: Custom). Example RTMP URL: <code>rtmp://yourserver/live</code></p>
+        <p class="small" style="margin-top:10px;opacity:0.8">Use OBS Studio or any streaming software with RTMP URL: <code>rtmp://yourserver/live</code></p>
+      </div>
+
+      <div class="card">
+        <h3>Go Live Using Webcam</h3>
+        <video id="webcamLive" autoplay muted playsinline style="background:#000;width:100%;border-radius:8px;"></video>
+        <button class="action btn-green" id="startWebcam">Start Webcam Live</button>
+        <button class="action btn-red" id="stopWebcam">Stop Webcam Live</button>
       </div>
 
       <div class="card">
@@ -139,14 +146,16 @@ video, img, audio { max-width:100%; height:auto; border-radius:8px; display:bloc
 
 <script>
 (function(){
+  // Persistent storage
   window.posts = JSON.parse(localStorage.getItem('posts') || '[]');
   window.polls = JSON.parse(localStorage.getItem('polls') || '[]');
+  window.userLikes = JSON.parse(localStorage.getItem('userLikes') || '{}');
 
   function seedDemoData(){
     if(window.posts.length === 0){
       const svg = "<svg xmlns='http://www.w3.org/2000/svg' width='800' height='450'><rect width='100%' height='100%' fill='#111'/><text x='50%' y='50%' fill='#fff' font-size='28' text-anchor='middle' dominant-baseline='central'>Welcome to InstaTube Demo</text></svg>";
       const img = 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
-      window.posts.push({ title: 'Welcome to InstaTube', caption: 'Sample image post — admin only uploads.', url: img, type:'image', comments:[], superchats:[] });
+      window.posts.push({ title: 'Welcome to InstaTube', caption: 'Sample image post — admin only uploads.', url: img, type:'image', comments:[], superchats:[], likes:0 });
       localStorage.setItem('posts', JSON.stringify(window.posts));
     }
     if(window.polls.length === 0){
@@ -181,6 +190,19 @@ video, img, audio { max-width:100%; height:auto; border-radius:8px; display:bloc
       const title = document.createElement('h3'); title.textContent = p.title || 'Untitled';
       const cap = document.createElement('p'); cap.textContent = p.caption || '';
 
+      // Like button
+      const likeBtn = document.createElement('button'); likeBtn.className='action btn-green';
+      likeBtn.textContent = `👍 Like (${p.likes || 0})`;
+      if(window.userLikes[i]) likeBtn.style.opacity=0.5;
+      likeBtn.addEventListener('click', ()=>{
+        if(window.userLikes[i]) return alert('You already liked/unliked this post');
+        p.likes = (p.likes||0) +1;
+        window.userLikes[i] = true;
+        localStorage.setItem('posts', JSON.stringify(window.posts));
+        localStorage.setItem('userLikes', JSON.stringify(window.userLikes));
+        renderPosts();
+      });
+
       const commentBox = document.createElement('div'); commentBox.className = 'comment-box';
       const commentTitle = document.createElement('h4'); commentTitle.textContent = 'Comments';
       const commentsDiv = document.createElement('div'); commentsDiv.id = `comments-${i}`;
@@ -202,6 +224,7 @@ video, img, audio { max-width:100%; height:auto; border-radius:8px; display:bloc
 
       card.appendChild(title);
       card.appendChild(mediaWrapper);
+      card.appendChild(likeBtn);
       card.appendChild(cap);
       card.appendChild(commentBox);
       card.appendChild(scBox);
@@ -243,7 +266,7 @@ video, img, audio { max-width:100%; height:auto; border-radius:8px; display:bloc
       reader.onload = function(e){
         const url = e.target.result;
         const type = file.type.startsWith('image/') ? 'image' : 'audio';
-        window.posts.unshift({ title, caption, url, type, comments:[], superchats:[] });
+        window.posts.unshift({ title, caption, url, type, comments:[], superchats:[], likes:0 });
         localStorage.setItem('posts', JSON.stringify(window.posts));
         renderPosts();
         document.getElementById('uploadForm').reset();
@@ -252,7 +275,7 @@ video, img, audio { max-width:100%; height:auto; border-radius:8px; display:bloc
       reader.readAsDataURL(file);
     } else {
       const url = URL.createObjectURL(file);
-      window.posts.unshift({ title, caption, url, type:'video', comments:[], superchats:[] });
+      window.posts.unshift({ title, caption, url, type:'video', comments:[], superchats:[], likes:0 });
       localStorage.setItem('posts', JSON.stringify(window.posts));
       renderPosts();
       document.getElementById('uploadForm').reset();
@@ -274,75 +297,89 @@ video, img, audio { max-width:100%; height:auto; border-radius:8px; display:bloc
     window.polls.unshift({ q, opts, votes: Array(opts.length).fill(0) });
     localStorage.setItem('polls', JSON.stringify(window.polls));
     renderPolls();
-    document.getElementById('pollQuestion').value = '';
-    document.querySelectorAll('.poll-opt').forEach((n,i)=>{ if(i>1) n.remove(); else n.value=''; });
   }
-  document.getElementById('createPoll').addEventListener('click', function(e){ e.preventDefault(); createPoll(); });
+  document.getElementById('createPoll').addEventListener('click', createPoll);
 
   function renderPolls(){
-    const list = document.getElementById('pollList'); list.innerHTML = '';
+    const container = document.getElementById('pollList'); container.innerHTML = '';
     window.polls.forEach((p,i)=>{
-      const div = document.createElement('div'); div.className = 'card';
-      const q = document.createElement('h4'); q.textContent = p.q; div.appendChild(q);
-      const optsWrap = document.createElement('div');
-      p.opts.forEach((o, idx) => {
-        const btn = document.createElement('button'); btn.className = 'action btn-dark'; btn.style.display='block'; btn.style.margin='6px 0';
-        btn.textContent = `${o} (${p.votes[idx]})`;
-        btn.addEventListener('click', () => vote(i, idx));
-        optsWrap.appendChild(btn);
+      const card = document.createElement('div'); card.className='card';
+      const q = document.createElement('h4'); q.textContent = p.q;
+      const ul = document.createElement('ul');
+      p.opts.forEach((o,j)=>{
+        const li = document.createElement('li'); li.textContent = `${o} (${p.votes[j]})`;
+        li.style.cursor = 'pointer';
+        li.addEventListener('click', ()=>{
+          p.votes[j]++;
+          localStorage.setItem('polls', JSON.stringify(window.polls));
+          renderPolls();
+        });
+        ul.appendChild(li);
       });
-      div.appendChild(optsWrap);
-      list.appendChild(div);
+      card.appendChild(q); card.appendChild(ul);
+      container.appendChild(card);
     });
   }
-  window.vote = function(i, idx){
-    window.polls[i].votes[idx]++;
-    localStorage.setItem('polls', JSON.stringify(window.polls));
-    renderPolls();
-  };
 
-  function generateStreamKey(){
-    const key = 'LIVE-' + Math.random().toString(36).substring(2,10).toUpperCase();
+  document.querySelectorAll('.nav-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>switchTab(btn.dataset.tab));
+  });
+
+  document.getElementById('uploadForm').addEventListener('submit', function(e){ e.preventDefault(); uploadPost(); });
+  document.getElementById('clearLocal').addEventListener('click', ()=>{ localStorage.clear(); window.posts=[]; window.polls=[]; window.userLikes={}; renderPosts(); renderPolls(); alert('Cleared local storage'); });
+
+  // Live Webcam
+  let webcamStream = null;
+  document.getElementById('startWebcam').addEventListener('click', async ()=>{
+    if(webcamStream){ alert('Webcam already running'); return; }
+    try{
+      webcamStream = await navigator.mediaDevices.getUserMedia({ video:true, audio:true });
+      document.getElementById('webcamLive').srcObject = webcamStream;
+    }catch(err){ alert('Webcam error: '+err); }
+  });
+  document.getElementById('stopWebcam').addEventListener('click', ()=>{
+    if(webcamStream){ webcamStream.getTracks().forEach(t=>t.stop()); webcamStream=null; document.getElementById('webcamLive').srcObject=null; }
+  });
+
+  // Generate dummy Stream Key
+  document.getElementById('genKey').addEventListener('click', ()=>{
+    const key = Math.random().toString(36).substring(2,12);
     document.getElementById('streamKey').textContent = key;
-  }
-  document.getElementById('genKey').addEventListener('click', generateStreamKey);
+  });
 
-  function addLiveComment(){
+  // Live Chat
+  const liveComments = [];
+  function renderLiveComments(){
+    document.getElementById('liveComments').innerHTML = liveComments.map(c=>`<div class="comment">${escapeHtml(c)}</div>`).join('');
+  }
+  document.getElementById('sendLiveComment').addEventListener('click', ()=>{
     const val = document.getElementById('liveCommentInput').value.trim();
     if(!val) return;
-    const box = document.getElementById('liveComments');
-    const d = document.createElement('div'); d.className='comment'; d.textContent = val; box.appendChild(d);
-    document.getElementById('liveCommentInput').value = '';
-  }
-  document.getElementById('sendLiveComment').addEventListener('click', addLiveComment);
+    liveComments.push(val);
+    document.getElementById('liveCommentInput').value='';
+    renderLiveComments();
+  });
 
-  function addSuperChat(){
-    const name = (document.getElementById('scName').value||'').trim();
-    const msg = (document.getElementById('scMsg').value||'').trim();
-    const amount = (document.getElementById('scAmount') && document.getElementById('scAmount').value) ? document.getElementById('scAmount').value.trim() : '';
-    if(!name || !msg || !amount) return alert('Fill all SuperChat fields');
-    const box = document.getElementById('superChatFeed');
-    const d = document.createElement('div'); d.className='superchat'; d.textContent = `₹${amount} - ${name}: ${msg}`; box.appendChild(d);
+  // Super Chat
+  const superChatFeed = [];
+  function renderLiveSuperChats(){
+    document.getElementById('superChatFeed').innerHTML = superChatFeed.map(c=>`<div class="superchat">₹${escapeHtml(c.amount)} - ${escapeHtml(c.name)}: ${escapeHtml(c.msg)}</div>`).join('');
+  }
+  document.getElementById('sendSuperChat').addEventListener('click', ()=>{
+    const name = document.getElementById('scName').value.trim();
+    const msg = document.getElementById('scMsg').value.trim();
+    const amt = document.getElementById('scAmount').value.trim();
+    if(!name || !msg || !amt) return alert('Fill all SuperChat fields');
+    superChatFeed.push({ name,msg,amount:amt });
+    renderLiveSuperChats();
     document.getElementById('scName').value=''; document.getElementById('scMsg').value=''; document.getElementById('scAmount').value='';
-  }
-  document.getElementById('sendSuperChat').addEventListener('click', addSuperChat);
-
-  document.getElementById('clearLocal').addEventListener('click', function(){ if(confirm('Clear local posts & polls?')){ localStorage.removeItem('posts'); localStorage.removeItem('polls'); location.reload(); } });
-
-  document.querySelectorAll('[data-tab]').forEach(btn => {
-    btn.addEventListener('click', function(){ switchTab(this.dataset.tab); });
   });
 
   seedDemoData();
   renderPosts();
   renderPolls();
-
-  document.getElementById('uploadForm').addEventListener('submit', function(e){
-    e.preventDefault();
-    uploadPost();
-  });
-
 })();
 </script>
+
 </body>
 </html>
