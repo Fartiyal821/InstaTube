@@ -8,31 +8,50 @@
 
 <!-- Favicon Icon -->
 <link rel="icon" type="image/svg+xml" 
- href="data:image/svg+xml;base64,PHN2ZyBmaWxsPSJyZWQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgdmlld0JveD0iMCAwIDI1NiAyNTYiPjxjaXJjbGUgY3g9IjEyOCIgY3k9IjEyOCIgcj0iMTE4IiBmaWxsPSIjZjAwIi8+PHBhdGggZD0iTTEwMCA4MHY5Nmw3Mi00OC05Mi00OCIvPjwvc3ZnPg==" />
+ href="data:image/svg+xml;base64,PHN2ZyBmaWxsPSJyZWQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgdmlld0JveD0iMCAwIDI1NiAyNTYiPjxjaXJjbGUgY3g9IjEyOCIgY3k9IjEyOCIgcj0iMTE4IiBmaWxsPSIjZjAwIi8+PHBhdGggZD0iTTEwMCA4MHY5Nmw3Mi00OC05Mi00OCIvPjwvc3ZnPg=="
+/>
 
 <style>
-body { font-family: Arial, sans-serif; background:#0a0a0a; color:#eee; margin:0; }
-header { background:#111; border-bottom:1px solid #333; padding:10px; display:flex; align-items:center; gap:10px; position:sticky; top:0; }
-header h1 { font-weight:bold; font-size:20px; }
-header h1 span { color:#f00; }
-.layout { display:grid; grid-template-columns:240px 1fr; gap:20px; padding:20px; }
-aside { background:#111; padding:10px; border-radius:10px; }
-aside button { display:block; width:100%; margin:6px 0; padding:10px; border-radius:8px; background:#222; color:#fff; border:none; cursor:pointer; }
-aside button:hover { background:#333; }
-section { display:none; }
-section.active { display:block; }
-.card { background:#111; border:1px solid #333; border-radius:10px; padding:12px; margin-bottom:16px; }
-input, textarea { width:100%; padding:8px; margin:6px 0; border-radius:8px; border:1px solid #444; background:#0a0a0a; color:#fff; }
-button.action { padding:8px 12px; margin-top:6px; border:none; border-radius:8px; cursor:pointer; font-weight:bold; }
-.red { background:#e00; color:#fff; }
-.red:hover { background:#c00; }
-.green { background:#059669; color:#fff; }
-.green:hover { background:#047857; }
-.dark { background:#222; color:#fff; }
-.dark:hover { background:#333; }
-.comment-box { margin-top:10px; }
-.comment { background:#1c1c1c; padding:6px; border-radius:6px; margin:4px 0; font-size:0.9rem; }
-.superchat { background:#ffcc00; color:#000; padding:8px; border-radius:8px; margin:4px 0; font-weight:bold; }
+:root{ --bg:#0a0a0a; --panel:#111; --muted:#888; --accent:#ff2b2b; }
+*{box-sizing:border-box}
+body { font-family: Inter, system-ui, -apple-system, Arial, sans-serif; background:var(--bg); color:#eee; margin:0; -webkit-font-smoothing:antialiased }
+header { background:var(--panel); border-bottom:1px solid #222; padding:12px 16px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:50 }
+header h1 { font-weight:700; font-size:18px; margin:0 }
+header h1 span { color:var(--accent) }
+
+.container { display:grid; grid-template-columns:240px 1fr; gap:20px; padding:20px; max-width:1300px; margin:0 auto }
+aside { background:var(--panel); padding:12px; border-radius:12px; height:fit-content }
+.nav-btn { display:block; width:100%; margin:8px 0; padding:10px; border-radius:10px; background:#161616; color:#fff; border:1px solid #222; cursor:pointer; text-align:left }
+.nav-btn:hover{ background:#1f1f1f }
+
+main { min-height:80vh }
+section { display:none }
+section.active { display:block }
+.card { background:var(--panel); border:1px solid #222; border-radius:12px; padding:14px; margin-bottom:16px }
+input, textarea { width:100%; padding:10px; margin:8px 0; border-radius:8px; border:1px solid #333; background:transparent; color:#fff }
+button.action { padding:10px 14px; margin-top:8px; border:none; border-radius:8px; cursor:pointer; font-weight:700 }
+.btn-red{ background:#e53935; color:#fff }
+.btn-green{ background:#059669; color:#fff }
+.btn-dark{ background:#222; color:#fff }
+
+.comment-box { margin-top:10px }
+.comment { background:#141414; padding:8px; border-radius:8px; margin:6px 0; font-size:0.95rem }
+.superchat { background:#ffcc00; color:#000; padding:8px; border-radius:8px; margin:6px 0; font-weight:700 }
+
+video, img, audio { max-width:100%; height:auto; border-radius:8px; display:block }
+
+@media (max-width: 1100px){
+  .container { grid-template-columns:1fr; padding:12px }
+  aside { display:flex; gap:8px; border-radius:10px; padding:8px }
+  .nav-btn{ flex:1; margin:0 }
+}
+@media (max-width:600px){
+  header h1{ font-size:16px }
+  .card{ padding:10px }
+  .nav-btn{ padding:10px 8px }
+}
+
+.small { font-size:0.9rem; opacity:0.85 }
 </style>
 </head>
 <body>
@@ -41,198 +60,289 @@ button.action { padding:8px 12px; margin-top:6px; border:none; border-radius:8px
   <h1>Insta<span>Tube</span> — Admin</h1>
 </header>
 
-<div class="layout">
-  <!-- Sidebar -->
+<div class="container">
   <aside>
-    <button onclick="switchTab('home')">🏠 Home</button>
-    <button onclick="switchTab('upload')">⬆️ Upload</button>
-    <button onclick="switchTab('polls')">📊 Polls</button>
-    <button onclick="switchTab('live')">🔴 Live</button>
+    <button class="nav-btn" data-tab="home">🏠 Home</button>
+    <button class="nav-btn" data-tab="upload">⬆️ Upload</button>
+    <button class="nav-btn" data-tab="polls">📊 Polls</button>
+    <button class="nav-btn" data-tab="live">🔴 Live</button>
   </aside>
 
-  <!-- Main Content -->
   <main>
-    <!-- Home -->
     <section id="home" class="active">
       <h2>Home</h2>
       <div id="videoFeed"></div>
     </section>
 
-    <!-- Upload (Admin Only) -->
     <section id="upload">
-      <h2>Upload Video</h2>
-      <input type="file" id="fileInput" accept="video/*,image/*,audio/*">
-      <input type="text" id="titleInput" placeholder="Title">
-      <textarea id="captionInput" placeholder="Caption"></textarea>
-      <button class="action red" onclick="uploadPost()">Publish</button>
+      <h2>Upload (Admin only)</h2>
+      <form id="uploadForm" class="card" autocomplete="off">
+        <label class="small">File</label>
+        <input type="file" id="fileInput" accept="video/*,image/*,audio/*">
+        <label class="small">Title</label>
+        <input type="text" id="titleInput" placeholder="Title">
+        <label class="small">Caption</label>
+        <textarea id="captionInput" rows="3" placeholder="Caption"></textarea>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="action btn-red" type="submit">Publish</button>
+          <button class="action btn-dark" type="button" id="clearLocal">Clear Local Storage</button>
+        </div>
+        <p class="small" style="margin-top:8px;opacity:0.8">Note: For demonstration, images & audio are saved as data-URLs so they persist across reloads. Video files are stored using blob URLs (may not persist between browser sessions).</p>
+      </form>
     </section>
 
-    <!-- Polls (Admin Only) -->
     <section id="polls">
       <h2>Create Poll</h2>
-      <input type="text" id="pollQuestion" placeholder="Poll Question">
-      <div id="pollOptions">
-        <input type="text" placeholder="Option 1" class="poll-opt">
-        <input type="text" placeholder="Option 2" class="poll-opt">
+      <div class="card">
+        <input type="text" id="pollQuestion" placeholder="Poll Question">
+        <div id="pollOptions">
+          <input type="text" placeholder="Option 1" class="poll-opt">
+          <input type="text" placeholder="Option 2" class="poll-opt">
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="action btn-dark" id="addPollOption">+ Add Option</button>
+          <button class="action btn-green" id="createPoll">Create Poll</button>
+        </div>
       </div>
-      <button class="action dark" onclick="addPollOption()">+ Add Option</button>
-      <button class="action green" onclick="createPoll()">Create Poll</button>
       <div id="pollList"></div>
     </section>
 
-    <!-- Live -->
     <section id="live">
       <h2>Go Live</h2>
       <div class="card">
-        <p><b>Stream Key:</b> <span id="streamKey"></span></p>
-        <button class="action red" onclick="generateStreamKey()">Generate Stream Key</button>
-        <p style="margin-top:10px;font-size:0.9rem;opacity:0.8;">
-          Use this key in OBS Studio (Settings > Stream > Service: Custom, paste RTMP URL and key).
-          Example RTMP URL: <code>rtmp://yourserver/live</code>
-        </p>
+        <p><b>Stream Key:</b> <span id="streamKey">—</span></p>
+        <button class="action btn-red" id="genKey">Generate Stream Key</button>
+        <p class="small" style="margin-top:10px;opacity:0.8">Use this key in OBS Studio (Settings &gt; Stream &gt; Service: Custom). Example RTMP URL: <code>rtmp://yourserver/live</code></p>
       </div>
+
       <div class="card">
         <h3>Live Chat</h3>
         <div id="liveComments"></div>
-        <input type="text" id="liveCommentInput" placeholder="Add a comment...">
-        <button class="action dark" onclick="addLiveComment()">Send</button>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <input type="text" id="liveCommentInput" placeholder="Add a comment...">
+          <button class="action btn-dark" id="sendLiveComment">Send</button>
+        </div>
       </div>
+
       <div class="card">
         <h3>Super Chat 💰</h3>
         <input type="text" id="scName" placeholder="Your Name">
         <input type="text" id="scMsg" placeholder="Message">
         <input type="number" id="scAmount" placeholder="Amount (₹)">
-        <button class="action green" onclick="addSuperChat()">Send Super Chat</button>
-        <div id="superChatFeed"></div>
+        <button class="action btn-green" id="sendSuperChat">Send Super Chat</button>
+        <div id="superChatFeed" style="margin-top:8px"></div>
       </div>
     </section>
+
   </main>
 </div>
 
 <script>
-// Storage
-let posts = JSON.parse(localStorage.getItem('posts') || '[]');
-let polls = JSON.parse(localStorage.getItem('polls') || '[]');
+(function(){
+  window.posts = JSON.parse(localStorage.getItem('posts') || '[]');
+  window.polls = JSON.parse(localStorage.getItem('polls') || '[]');
 
-// Switch tabs
-function switchTab(tab){
-  document.querySelectorAll('section').forEach(s=>s.classList.remove('active'));
-  document.getElementById(tab).classList.add('active');
-  if(tab==='home') renderPosts();
-  if(tab==='polls') renderPolls();
-}
+  function seedDemoData(){
+    if(window.posts.length === 0){
+      const svg = "<svg xmlns='http://www.w3.org/2000/svg' width='800' height='450'><rect width='100%' height='100%' fill='#111'/><text x='50%' y='50%' fill='#fff' font-size='28' text-anchor='middle' dominant-baseline='central'>Welcome to InstaTube Demo</text></svg>";
+      const img = 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+      window.posts.push({ title: 'Welcome to InstaTube', caption: 'Sample image post — admin only uploads.', url: img, type:'image', comments:[], superchats:[] });
+      localStorage.setItem('posts', JSON.stringify(window.posts));
+    }
+    if(window.polls.length === 0){
+      window.polls.push({ q: 'Do you like this demo?', opts: ['Yes','No'], votes: [0,0] });
+      localStorage.setItem('polls', JSON.stringify(window.polls));
+    }
+  }
 
-// Upload (Admin)
-function uploadPost(){
-  let title = document.getElementById('titleInput').value;
-  let caption = document.getElementById('captionInput').value;
-  let file = document.getElementById('fileInput').files[0];
-  if(!title || !file) return alert("Need file & title");
-  let url = URL.createObjectURL(file);
-  posts.unshift({title, caption, url, comments:[], superchats:[]});
-  localStorage.setItem('posts', JSON.stringify(posts));
-  renderPosts();
-  alert("Published!");
-}
+  function switchTab(tab){
+    document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+    const el = document.getElementById(tab);
+    if(el) el.classList.add('active');
+    if(tab === 'home') renderPosts();
+    if(tab === 'polls') renderPolls();
+  }
+  window.switchTab = switchTab;
 
-// Render Posts (Visible to All)
-function renderPosts(){
-  let feed = document.getElementById('videoFeed');
-  feed.innerHTML="";
-  posts.forEach((p,i)=>{
-    let card = document.createElement('div');
-    card.className="card";
-    card.innerHTML=`
-      <h3>${p.title}</h3>
-      <video src="${p.url}" controls style="width:100%;border-radius:8px;"></video>
-      <p>${p.caption}</p>
-      <div class="comment-box">
-        <h4>Comments</h4>
-        <div id="comments-${i}">${p.comments.map(c=>`<div class="comment">${c}</div>`).join('')}</div>
-        <input type="text" id="cinput-${i}" placeholder="Add a comment">
-        <button class="action dark" onclick="addComment(${i})">Send</button>
-      </div>
-      <div class="comment-box">
-        <h4>Super Chats</h4>
-        <div id="sc-${i}">${p.superchats.map(s=>`<div class="superchat">₹${s.amount} - ${s.name}: ${s.msg}</div>`).join('')}</div>
-        <input type="text" id="scname-${i}" placeholder="Name">
-        <input type="text" id="scmsg-${i}" placeholder="Message">
-        <input type="number" id="scamt-${i}" placeholder="Amount (₹)">
-        <button class="action green" onclick="addPostSuperChat(${i})">Super Chat</button>
-      </div>
-    `;
-    feed.appendChild(card);
+  function renderPosts(){
+    const feed = document.getElementById('videoFeed');
+    feed.innerHTML = '';
+    window.posts.forEach((p, i) => {
+      const card = document.createElement('div'); card.className = 'card';
+      let mediaWrapper = document.createElement('div');
+      if(p.type === 'image' || (p.url && /data:image|\.png|\.jpg|\.jpeg|\.svg/i.test(p.url))){
+        const img = document.createElement('img'); img.src = p.url; img.alt = p.title || 'image'; mediaWrapper.appendChild(img);
+      } else if(p.type === 'audio' || (p.url && /\.mp3|\.wav|audio\//i.test(p.url))){
+        const audio = document.createElement('audio'); audio.controls = true; audio.src = p.url; mediaWrapper.appendChild(audio);
+      } else {
+        const video = document.createElement('video'); video.controls = true; video.src = p.url; video.style.width = '100%'; mediaWrapper.appendChild(video);
+      }
+
+      const title = document.createElement('h3'); title.textContent = p.title || 'Untitled';
+      const cap = document.createElement('p'); cap.textContent = p.caption || '';
+
+      const commentBox = document.createElement('div'); commentBox.className = 'comment-box';
+      const commentTitle = document.createElement('h4'); commentTitle.textContent = 'Comments';
+      const commentsDiv = document.createElement('div'); commentsDiv.id = `comments-${i}`;
+      commentsDiv.innerHTML = p.comments.map(c => `<div class="comment">${escapeHtml(c)}</div>`).join('');
+      const commentInput = document.createElement('input'); commentInput.type='text'; commentInput.placeholder='Add a comment'; commentInput.id = `cinput-${i}`;
+      const commentBtn = document.createElement('button'); commentBtn.className='action btn-dark'; commentBtn.textContent='Send';
+      commentBtn.addEventListener('click', () => addComment(i, commentInput));
+      commentBox.appendChild(commentTitle); commentBox.appendChild(commentsDiv); commentBox.appendChild(commentInput); commentBox.appendChild(commentBtn);
+
+      const scBox = document.createElement('div'); scBox.className = 'comment-box';
+      const scTitle = document.createElement('h4'); scTitle.textContent = 'Super Chats';
+      const scDiv = document.createElement('div'); scDiv.id = `sc-${i}`; scDiv.innerHTML = p.superchats.map(s => `<div class="superchat">₹${escapeHtml(s.amount)} - ${escapeHtml(s.name)}: ${escapeHtml(s.msg)}</div>`).join('');
+      const scName = document.createElement('input'); scName.type='text'; scName.placeholder='Name'; scName.id = `scname-${i}`;
+      const scMsg = document.createElement('input'); scMsg.type='text'; scMsg.placeholder='Message'; scMsg.id = `scmsg-${i}`;
+      const scAmt = document.createElement('input'); scAmt.type='number'; scAmt.placeholder='Amount (₹)'; scAmt.id = `scamt-${i}`;
+      const scBtn = document.createElement('button'); scBtn.className='action btn-green'; scBtn.textContent='Super Chat';
+      scBtn.addEventListener('click', () => addPostSuperChat(i, scName, scMsg, scAmt));
+      scBox.appendChild(scTitle); scBox.appendChild(scDiv); scBox.appendChild(scName); scBox.appendChild(scMsg); scBox.appendChild(scAmt); scBox.appendChild(scBtn);
+
+      card.appendChild(title);
+      card.appendChild(mediaWrapper);
+      card.appendChild(cap);
+      card.appendChild(commentBox);
+      card.appendChild(scBox);
+
+      feed.appendChild(card);
+    });
+  }
+
+  function escapeHtml(str){ if(!str && str !== 0) return ''; return String(str).replace(/[&<>"']/g, function(m){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[m]; }); }
+
+  function addComment(index, inputEl){
+    const val = inputEl.value.trim();
+    if(!val) return alert('Comment is empty');
+    window.posts[index].comments.push(val);
+    localStorage.setItem('posts', JSON.stringify(window.posts));
+    renderPosts();
+  }
+  window.addComment = addComment;
+
+  function addPostSuperChat(index, nameEl, msgEl, amtEl){
+    const name = (nameEl.value || '').trim();
+    const msg = (msgEl.value || '').trim();
+    const amt = (amtEl.value || '').trim();
+    if(!name || !msg || !amt) return alert('Fill all SuperChat fields');
+    window.posts[index].superchats.push({ name, msg, amount: amt });
+    localStorage.setItem('posts', JSON.stringify(window.posts));
+    renderPosts();
+  }
+  window.addPostSuperChat = addPostSuperChat;
+
+  function uploadPost(){
+    const title = document.getElementById('titleInput').value.trim();
+    const caption = document.getElementById('captionInput').value.trim();
+    const file = document.getElementById('fileInput').files[0];
+    if(!title || !file) return alert('Need file & title');
+
+    if(file.type.startsWith('image/') || file.type.startsWith('audio/')){
+      const reader = new FileReader();
+      reader.onload = function(e){
+        const url = e.target.result;
+        const type = file.type.startsWith('image/') ? 'image' : 'audio';
+        window.posts.unshift({ title, caption, url, type, comments:[], superchats:[] });
+        localStorage.setItem('posts', JSON.stringify(window.posts));
+        renderPosts();
+        document.getElementById('uploadForm').reset();
+        alert('Published!');
+      };
+      reader.readAsDataURL(file);
+    } else {
+      const url = URL.createObjectURL(file);
+      window.posts.unshift({ title, caption, url, type:'video', comments:[], superchats:[] });
+      localStorage.setItem('posts', JSON.stringify(window.posts));
+      renderPosts();
+      document.getElementById('uploadForm').reset();
+      alert('Published! (video stored as temporary blob URL)');
+    }
+  }
+  window.uploadPost = uploadPost;
+
+  function addPollOption(){
+    const inp = document.createElement('input'); inp.placeholder = 'Option'; inp.className = 'poll-opt';
+    document.getElementById('pollOptions').appendChild(inp);
+  }
+  document.getElementById('addPollOption').addEventListener('click', function(e){ e.preventDefault(); addPollOption(); });
+
+  function createPoll(){
+    const q = document.getElementById('pollQuestion').value.trim();
+    const opts = Array.from(document.querySelectorAll('.poll-opt')).map(i=>i.value.trim()).filter(Boolean);
+    if(!q || opts.length < 2) return alert('Need question and 2+ options');
+    window.polls.unshift({ q, opts, votes: Array(opts.length).fill(0) });
+    localStorage.setItem('polls', JSON.stringify(window.polls));
+    renderPolls();
+    document.getElementById('pollQuestion').value = '';
+    document.querySelectorAll('.poll-opt').forEach((n,i)=>{ if(i>1) n.remove(); else n.value=''; });
+  }
+  document.getElementById('createPoll').addEventListener('click', function(e){ e.preventDefault(); createPoll(); });
+
+  function renderPolls(){
+    const list = document.getElementById('pollList'); list.innerHTML = '';
+    window.polls.forEach((p,i)=>{
+      const div = document.createElement('div'); div.className = 'card';
+      const q = document.createElement('h4'); q.textContent = p.q; div.appendChild(q);
+      const optsWrap = document.createElement('div');
+      p.opts.forEach((o, idx) => {
+        const btn = document.createElement('button'); btn.className = 'action btn-dark'; btn.style.display='block'; btn.style.margin='6px 0';
+        btn.textContent = `${o} (${p.votes[idx]})`;
+        btn.addEventListener('click', () => vote(i, idx));
+        optsWrap.appendChild(btn);
+      });
+      div.appendChild(optsWrap);
+      list.appendChild(div);
+    });
+  }
+  window.vote = function(i, idx){
+    window.polls[i].votes[idx]++;
+    localStorage.setItem('polls', JSON.stringify(window.polls));
+    renderPolls();
+  };
+
+  function generateStreamKey(){
+    const key = 'LIVE-' + Math.random().toString(36).substring(2,10).toUpperCase();
+    document.getElementById('streamKey').textContent = key;
+  }
+  document.getElementById('genKey').addEventListener('click', generateStreamKey);
+
+  function addLiveComment(){
+    const val = document.getElementById('liveCommentInput').value.trim();
+    if(!val) return;
+    const box = document.getElementById('liveComments');
+    const d = document.createElement('div'); d.className='comment'; d.textContent = val; box.appendChild(d);
+    document.getElementById('liveCommentInput').value = '';
+  }
+  document.getElementById('sendLiveComment').addEventListener('click', addLiveComment);
+
+  function addSuperChat(){
+    const name = (document.getElementById('scName').value||'').trim();
+    const msg = (document.getElementById('scMsg').value||'').trim();
+    const amount = (document.getElementById('scAmount') && document.getElementById('scAmount').value) ? document.getElementById('scAmount').value.trim() : '';
+    if(!name || !msg || !amount) return alert('Fill all SuperChat fields');
+    const box = document.getElementById('superChatFeed');
+    const d = document.createElement('div'); d.className='superchat'; d.textContent = `₹${amount} - ${name}: ${msg}`; box.appendChild(d);
+    document.getElementById('scName').value=''; document.getElementById('scMsg').value=''; document.getElementById('scAmount').value='';
+  }
+  document.getElementById('sendSuperChat').addEventListener('click', addSuperChat);
+
+  document.getElementById('clearLocal').addEventListener('click', function(){ if(confirm('Clear local posts & polls?')){ localStorage.removeItem('posts'); localStorage.removeItem('polls'); location.reload(); } });
+
+  document.querySelectorAll('[data-tab]').forEach(btn => {
+    btn.addEventListener('click', function(){ switchTab(this.dataset.tab); });
   });
-}
-function addComment(i){
-  let val = document.getElementById(`cinput-${i}`).value;
-  if(val.trim()=="") return;
-  posts[i].comments.push(val);
-  localStorage.setItem('posts', JSON.stringify(posts));
-  renderPosts();
-}
-function addPostSuperChat(i){
-  let name=document.getElementById(`scname-${i}`).value;
-  let msg=document.getElementById(`scmsg-${i}`).value;
-  let amt=document.getElementById(`scamt-${i}`).value;
-  if(!name||!msg||!amt) return alert("Fill all SuperChat fields");
-  posts[i].superchats.push({name,msg,amount:amt});
-  localStorage.setItem('posts', JSON.stringify(posts));
-  renderPosts();
-}
 
-// Polls (Admin)
-function addPollOption(){
-  let inp=document.createElement('input');
-  inp.placeholder="Option";
-  inp.className="poll-opt";
-  document.getElementById('pollOptions').appendChild(inp);
-}
-function createPoll(){
-  let q=document.getElementById('pollQuestion').value;
-  let opts=[...document.querySelectorAll('.poll-opt')].map(i=>i.value).filter(Boolean);
-  if(!q||opts.length<2) return alert("Need question and 2+ options");
-  polls.unshift({q,opts,votes:Array(opts.length).fill(0)});
-  localStorage.setItem('polls', JSON.stringify(polls));
+  seedDemoData();
+  renderPosts();
   renderPolls();
-}
-function renderPolls(){
-  let list=document.getElementById('pollList');
-  list.innerHTML="";
-  polls.forEach((p,i)=>{
-    let div=document.createElement('div');
-    div.className="card";
-    div.innerHTML=`<h4>${p.q}</h4>`+p.opts.map((o,idx)=>`<button class="action dark" onclick="vote(${i},${idx})">${o} (${p.votes[idx]})</button>`).join("<br>");
-    list.appendChild(div);
+
+  document.getElementById('uploadForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    uploadPost();
   });
-}
-function vote(i,idx){
-  polls[i].votes[idx]++;
-  localStorage.setItem('polls', JSON.stringify(polls));
-  renderPolls();
-}
 
-// Live
-function generateStreamKey(){
-  let key="LIVE-"+Math.random().toString(36).substring(2,10).toUpperCase();
-  document.getElementById("streamKey").textContent=key;
-}
-function addLiveComment(){
-  let val=document.getElementById("liveCommentInput").value;
-  if(!val) return;
-  let box=document.getElementById("liveComments");
-  box.innerHTML+=`<div class="comment">${val}</div>`;
-  document.getElementById("liveCommentInput").value="";
-}
-function addSuperChat(){
-  let name=document.getElementById("scName").value;
-  let msg=document.getElementById("scMsg").value;
-  let amt=document.getElementById("scAmount").value;
-  if(!name||!msg||!amt) return alert("Fill all SuperChat fields");
-  let box=document.getElementById("superChatFeed");
-  box.innerHTML+=`<div class="superchat">₹${amt} - ${name}: ${msg}</div>`;
-}
+})();
 </script>
 </body>
 </html>
-
