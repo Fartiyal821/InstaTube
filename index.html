@@ -3,9 +3,10 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>InstaTube — Admin Panel</title>
-<meta name="description" content="InstaTube — Persistent uploads & interactions">
+<title>InstaTube — Admin & Users</title>
+<meta name="description" content="InstaTube — Admin can upload, users can watch live and chat.">
 
+<!-- Favicon Icon -->
 <link rel="icon" type="image/svg+xml" 
  href="data:image/svg+xml;base64,PHN2ZyBmaWxsPSJyZWQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgdmlld0JveD0iMCAwIDI1NiAyNTYiPjxjaXJjbGUgY3g9IjEyOCIgY3k9IjEyOCIgcj0iMTE4IiBmaWxsPSIjZjAwIi8+PHBhdGggZD0iTTEwMCA4MHY5Nmw3Mi00OC05Mi00OCIvPjwvc3ZnPg=="
 />
@@ -56,7 +57,7 @@ video, img, audio { max-width:100%; height:auto; border-radius:8px; display:bloc
 <body>
 
 <header>
-  <h1>Insta<span>Tube</span> — Admin</h1>
+  <h1>Insta<span>Tube</span> — Live & Upload</h1>
 </header>
 
 <div class="container">
@@ -65,16 +66,20 @@ video, img, audio { max-width:100%; height:auto; border-radius:8px; display:bloc
     <button class="nav-btn" data-tab="upload">⬆️ Upload</button>
     <button class="nav-btn" data-tab="polls">📊 Polls</button>
     <button class="nav-btn" data-tab="live">🔴 Live</button>
+    <button class="nav-btn" data-tab="profile">👤 Profile</button>
+    <button class="nav-btn" data-tab="story">📖 Story</button>
   </aside>
 
   <main>
+    <!-- HOME -->
     <section id="home" class="active">
       <h2>Home</h2>
       <div id="videoFeed"></div>
     </section>
 
+    <!-- UPLOAD -->
     <section id="upload">
-      <h2>Upload (Admin only)</h2>
+      <h2>Upload (Admin/User)</h2>
       <form id="uploadForm" class="card" autocomplete="off">
         <label class="small">File</label>
         <input type="file" id="fileInput" accept="video/*,image/*,audio/*">
@@ -84,12 +89,13 @@ video, img, audio { max-width:100%; height:auto; border-radius:8px; display:bloc
         <textarea id="captionInput" rows="3" placeholder="Caption"></textarea>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button class="action btn-red" type="submit">Publish</button>
-          <button class="action btn-dark" type="button" id="clearLocal">Clear Local Storage</button>
+          <button class="action btn-dark" type="button" id="clearLocal">Clear All</button>
         </div>
-        <p class="small" style="margin-top:8px;opacity:0.8">All uploaded posts are persistent and visible to all users.</p>
+        <p class="small" style="margin-top:8px;opacity:0.8">Images & audio saved as data-URLs. Videos stored persistently using localStorage + indexedDB.</p>
       </form>
     </section>
 
+    <!-- POLLS -->
     <section id="polls">
       <h2>Create Poll</h2>
       <div class="card">
@@ -106,204 +112,245 @@ video, img, audio { max-width:100%; height:auto; border-radius:8px; display:bloc
       <div id="pollList"></div>
     </section>
 
+    <!-- LIVE -->
     <section id="live">
       <h2>Go Live</h2>
+
       <div class="card">
         <p><b>Stream Key:</b> <span id="streamKey">—</span></p>
         <button class="action btn-red" id="genKey">Generate Stream Key</button>
-        <p class="small" style="margin-top:10px;opacity:0.8">Use this key in OBS Studio (Settings → Stream → Service: Custom). RTMP URL example: <code>rtmp://yourserver/live</code></p>
+        <p class="small" style="margin-top:10px;opacity:0.8">Use this key in OBS Studio (Settings → Stream → Service: Custom, Server: rtmp://YOUR_SERVER/live).</p>
       </div>
 
       <div class="card">
-        <h3>Webcam Live Stream</h3>
-        <video id="webcamLive" autoplay playsinline muted style="width:100%;border-radius:8px;background:#000"></video>
-        <div style="display:flex;gap:8px;margin-top:8px">
-          <button class="action btn-green" id="startWebcam">Start Webcam</button>
-          <button class="action btn-red" id="stopWebcam">Stop Webcam</button>
-        </div>
+        <h3>Live Stream</h3>
+        <video id="liveVideo" controls autoplay muted></video>
+        <button class="action btn-green" id="startWebcam">Start Webcam Live</button>
       </div>
 
       <div class="card">
         <h3>Live Chat</h3>
-        <div id="liveComments"></div>
+        <div id="liveComments" style="max-height:200px; overflow-y:auto"></div>
         <div style="display:flex;gap:8px;margin-top:8px">
           <input type="text" id="liveCommentInput" placeholder="Add a comment...">
           <button class="action btn-dark" id="sendLiveComment">Send</button>
         </div>
       </div>
+    </section>
 
+    <!-- PROFILE -->
+    <section id="profile">
+      <h2>Profile</h2>
       <div class="card">
-        <h3>Super Chat 💰</h3>
-        <input type="text" id="scName" placeholder="Your Name">
-        <input type="text" id="scMsg" placeholder="Message">
-        <input type="number" id="scAmount" placeholder="Amount (₹)">
-        <button class="action btn-green" id="sendSuperChat">Send Super Chat</button>
-        <div id="superChatFeed" style="margin-top:8px"></div>
+        <label>Username:</label>
+        <input type="text" id="profileName" placeholder="Enter your name">
+        <button class="action btn-green" id="saveProfile">Save Profile</button>
       </div>
     </section>
+
+    <!-- STORY -->
+    <section id="story">
+      <h2>Story</h2>
+      <form id="storyForm" class="card">
+        <input type="text" id="storyText" placeholder="Add your story...">
+        <button class="action btn-green" type="submit">Post Story</button>
+      </form>
+      <div id="storyFeed"></div>
+    </section>
+
   </main>
 </div>
 
 <script>
 (function(){
-  // Persistent posts, polls, likes/comments
+  // --- Storage ---
   window.posts = JSON.parse(localStorage.getItem('posts') || '[]');
   window.polls = JSON.parse(localStorage.getItem('polls') || '[]');
-  window.userLikes = JSON.parse(localStorage.getItem('userLikes') || '{}');
+  window.profile = JSON.parse(localStorage.getItem('profile') || '{}');
+  window.stories = JSON.parse(localStorage.getItem('stories') || '[]');
 
+  // --- Demo Data ---
   function seedDemoData(){
-    if(window.posts.length===0){
+    if(window.posts.length === 0){
       const svg = "<svg xmlns='http://www.w3.org/2000/svg' width='800' height='450'><rect width='100%' height='100%' fill='#111'/><text x='50%' y='50%' fill='#fff' font-size='28' text-anchor='middle' dominant-baseline='central'>Welcome to InstaTube Demo</text></svg>";
       const img = 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
-      window.posts.push({ title:'Welcome', caption:'Sample image post', url:img, type:'image', comments:[], superchats:[], likes:0 });
+      window.posts.push({ title:'Welcome', caption:'Sample image post', url: img, type:'image', likes:0, liked:false, comments:[], superchats:[], uploader:'Admin' });
       localStorage.setItem('posts', JSON.stringify(window.posts));
     }
-    if(window.polls.length===0){
-      window.polls.push({ q:'Do you like this demo?', opts:['Yes','No'], votes:[0,0] });
-      localStorage.setItem('polls', JSON.stringify(window.polls));
-    }
   }
 
-  function escapeHtml(str){ if(!str && str!==0) return ''; return String(str).replace(/[&<>"']/g, function(m){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[m]; }); }
-
+  // --- TAB SWITCH ---
   function switchTab(tab){
-    document.querySelectorAll('section').forEach(s=>s.classList.remove('active'));
-    document.getElementById(tab).classList.add('active');
-    if(tab==='home') renderPosts();
-    if(tab==='polls') renderPolls();
+    document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+    const el = document.getElementById(tab);
+    if(el) el.classList.add('active');
+    if(tab === 'home') renderPosts();
+    if(tab === 'polls') renderPolls();
+    if(tab === 'story') renderStories();
   }
+  window.switchTab = switchTab;
 
+  // --- POSTS ---
   function renderPosts(){
-    const feed = document.getElementById('videoFeed'); feed.innerHTML='';
+    const feed = document.getElementById('videoFeed');
+    feed.innerHTML='';
     window.posts.forEach((p,i)=>{
-      const card=document.createElement('div'); card.className='card';
+      const card = document.createElement('div'); card.className='card';
+
+      // Media
+      let mediaWrapper = document.createElement('div');
+      if(p.type==='image') { const img=document.createElement('img'); img.src=p.url; mediaWrapper.appendChild(img); }
+      else if(p.type==='audio') { const audio=document.createElement('audio'); audio.controls=true; audio.src=p.url; mediaWrapper.appendChild(audio); }
+      else { const video=document.createElement('video'); video.controls=true; video.src=p.url; mediaWrapper.appendChild(video); }
+
+      // Title & caption
       const title=document.createElement('h3'); title.textContent=p.title;
       const cap=document.createElement('p'); cap.textContent=p.caption;
-      const mediaWrapper=document.createElement('div');
-      if(p.type==='image'||/data:image|\.png|\.jpg|\.jpeg|\.svg/i.test(p.url)){ const img=document.createElement('img'); img.src=p.url; mediaWrapper.appendChild(img); }
-      else if(p.type==='audio'||/\.mp3|\.wav|audio\//i.test(p.url)){ const audio=document.createElement('audio'); audio.controls=true; audio.src=p.url; mediaWrapper.appendChild(audio); }
-      else{ const video=document.createElement('video'); video.controls=true; video.src=p.url; mediaWrapper.appendChild(video); }
+
+      // Likes
+      const likeBtn=document.createElement('button'); likeBtn.textContent=`❤️ ${p.likes}`; likeBtn.className='action btn-red';
+      likeBtn.addEventListener('click', ()=>{
+        if(!p.liked){ p.likes++; p.liked=true; } else { p.likes--; p.liked=false; }
+        localStorage.setItem('posts', JSON.stringify(window.posts));
+        renderPosts();
+      });
 
       // Comments
       const commentBox=document.createElement('div'); commentBox.className='comment-box';
       const commentsDiv=document.createElement('div'); commentsDiv.innerHTML=p.comments.map(c=>`<div class="comment">${escapeHtml(c)}</div>`).join('');
-      const commentInput=document.createElement('input'); commentInput.placeholder='Add a comment';
-      const commentBtn=document.createElement('button'); commentBtn.textContent='Send'; commentBtn.className='action btn-dark';
-      commentBtn.addEventListener('click', ()=>{
-        const val=commentInput.value.trim(); if(!val) return; p.comments.push(val);
-        localStorage.setItem('posts', JSON.stringify(window.posts)); renderPosts();
-      });
-      commentBox.appendChild(commentsDiv); commentBox.appendChild(commentInput); commentBox.appendChild(commentBtn);
+      const cinput=document.createElement('input'); cinput.type='text'; cinput.placeholder='Add comment';
+      const cbtn=document.createElement('button'); cbtn.className='action btn-dark'; cbtn.textContent='Send';
+      cbtn.addEventListener('click',()=>{ if(cinput.value){ p.comments.push(cinput.value); localStorage.setItem('posts', JSON.stringify(window.posts)); renderPosts(); } });
+      commentBox.appendChild(commentsDiv); commentBox.appendChild(cinput); commentBox.appendChild(cbtn);
 
-      // Likes
-      const likeBtn=document.createElement('button'); likeBtn.className='action btn-green'; likeBtn.textContent=`Like (${p.likes||0})`;
-      likeBtn.addEventListener('click', ()=>{
-        if(window.userLikes[i]) return alert('You already liked/unliked'); p.likes=p.likes+1||1;
-        window.userLikes[i]=true; localStorage.setItem('userLikes', JSON.stringify(window.userLikes));
-        localStorage.setItem('posts', JSON.stringify(window.posts)); renderPosts();
-      });
+      // Delete post button
+      const delBtn=document.createElement('button'); delBtn.className='action btn-dark'; delBtn.textContent='Delete'; 
+      delBtn.addEventListener('click',()=>{ if(confirm('Delete this post?')){ window.posts.splice(i,1); localStorage.setItem('posts',JSON.stringify(window.posts)); renderPosts(); } });
 
-      // SuperChat
-      const scBox=document.createElement('div'); scBox.className='comment-box';
-      scBox.innerHTML=p.superchats.map(s=>`<div class="superchat">₹${escapeHtml(s.amount)} - ${escapeHtml(s.name)}: ${escapeHtml(s.msg)}</div>`).join('');
-
-      card.appendChild(title); card.appendChild(mediaWrapper); card.appendChild(cap); card.appendChild(commentBox); card.appendChild(likeBtn); card.appendChild(scBox);
+      card.appendChild(title); card.appendChild(mediaWrapper); card.appendChild(cap); card.appendChild(likeBtn); card.appendChild(commentBox); card.appendChild(delBtn);
       feed.appendChild(card);
     });
   }
 
-  function uploadPost(){
-    const file=document.getElementById('fileInput').files[0]; const title=document.getElementById('titleInput').value.trim();
-    const caption=document.getElementById('captionInput').value.trim(); if(!file||!title) return alert('File & title required');
+  function escapeHtml(str){ if(!str && str!==0) return ''; return String(str).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[m])); }
 
-    if(file.type.startsWith('image/')||file.type.startsWith('audio/')){
-      const reader=new FileReader();
-      reader.onload=e=>{
-        const url=e.target.result;
-        const type=file.type.startsWith('image/')?'image':'audio';
-        window.posts.unshift({ title, caption, url, type, comments:[], superchats:[], likes:0 });
-        localStorage.setItem('posts', JSON.stringify(window.posts)); renderPosts(); document.getElementById('uploadForm').reset();
-      }; reader.readAsDataURL(file);
-    } else{
-      const url=URL.createObjectURL(file);
-      window.posts.unshift({ title, caption, url, type:'video', comments:[], superchats:[], likes:0 });
-      localStorage.setItem('posts', JSON.stringify(window.posts)); renderPosts(); document.getElementById('uploadForm').reset();
-    }
+  // --- UPLOAD ---
+  function uploadPost(){
+    const file=document.getElementById('fileInput').files[0];
+    const title=document.getElementById('titleInput').value.trim();
+    const caption=document.getElementById('captionInput').value.trim();
+    if(!file||!title)return alert('Title & file required');
+
+    const reader=new FileReader();
+    reader.onload=(e)=>{
+      let type='video';
+      if(file.type.startsWith('image/')) type='image';
+      else if(file.type.startsWith('audio/')) type='audio';
+      const url=e.target.result;
+      window.posts.unshift({ title, caption, url, type, likes:0, liked:false, comments:[], superchats:[], uploader:window.profile.name||'Anonymous' });
+      localStorage.setItem('posts', JSON.stringify(window.posts));
+      renderPosts();
+      document.getElementById('uploadForm').reset();
+    };
+    if(file.type.startsWith('video/')) reader.readAsDataURL(file);
+    else reader.readAsDataURL(file);
   }
 
-  // Polls
-  function renderPolls(){ const list=document.getElementById('pollList'); list.innerHTML='';
+  document.getElementById('uploadForm').addEventListener('submit', e=>{ e.preventDefault(); uploadPost(); });
+
+  // --- POLLS ---
+  function addPollOption(){ const inp=document.createElement('input'); inp.placeholder='Option'; inp.className='poll-opt'; document.getElementById('pollOptions').appendChild(inp); }
+  document.getElementById('addPollOption').addEventListener('click', e=>{ e.preventDefault(); addPollOption(); });
+
+  function createPoll(){
+    const q=document.getElementById('pollQuestion').value.trim();
+    const opts=Array.from(document.querySelectorAll('.poll-opt')).map(i=>i.value.trim()).filter(Boolean);
+    if(!q||opts.length<2)return alert('Need question & 2+ options');
+    window.polls.unshift({q,opts,votes:Array(opts.length).fill(0)});
+    localStorage.setItem('polls', JSON.stringify(window.polls));
+    renderPolls();
+    document.getElementById('pollQuestion').value='';
+    document.querySelectorAll('.poll-opt').forEach((n,i)=>{ if(i>1) n.remove(); else n.value=''; });
+  }
+  document.getElementById('createPoll').addEventListener('click', e=>{ e.preventDefault(); createPoll(); });
+
+  function renderPolls(){
+    const list=document.getElementById('pollList'); list.innerHTML='';
     window.polls.forEach((p,i)=>{
       const div=document.createElement('div'); div.className='card';
-      const q=document.createElement('h4'); q.textContent=p.q;
-      div.appendChild(q);
-      p.opts.forEach((o,j)=>{
+      const q=document.createElement('h4'); q.textContent=p.q; div.appendChild(q);
+      const optsWrap=document.createElement('div');
+      p.opts.forEach((o,idx)=>{
         const btn=document.createElement('button'); btn.className='action btn-dark'; btn.style.display='block'; btn.style.margin='6px 0';
-        btn.textContent=`${o} (${p.votes[j]})`;
-        btn.addEventListener('click', ()=>{ p.votes[j]++; localStorage.setItem('polls', JSON.stringify(window.polls)); renderPolls(); });
-        div.appendChild(btn);
+        btn.textContent=`${o} (${p.votes[idx]})`; btn.addEventListener('click',()=>{ p.votes[idx]++; localStorage.setItem('polls',JSON.stringify(window.polls)); renderPolls(); });
+        optsWrap.appendChild(btn);
       });
-      list.appendChild(div);
+      div.appendChild(optsWrap); list.appendChild(div);
     });
   }
 
-  function addPollOption(){ const inp=document.createElement('input'); inp.placeholder='Option'; inp.className='poll-opt';
-    document.getElementById('pollOptions').appendChild(inp); }
-  document.getElementById('addPollOption').addEventListener('click', e=>{ e.preventDefault(); addPollOption(); });
+  // --- STREAM KEY ---
+  function generateStreamKey(){ document.getElementById('streamKey').textContent='LIVE-'+Math.random().toString(36).substring(2,10).toUpperCase(); }
+  document.getElementById('genKey').addEventListener('click', generateStreamKey);
 
-  document.getElementById('createPoll').addEventListener('click', e=>{
-    e.preventDefault();
-    const q=document.getElementById('pollQuestion').value.trim();
-    const opts=Array.from(document.querySelectorAll('.poll-opt')).map(i=>i.value.trim()).filter(Boolean);
-    if(!q||opts.length<2) return alert('Need question & 2+ options');
-    window.polls.unshift({ q, opts, votes:Array(opts.length).fill(0) }); localStorage.setItem('polls', JSON.stringify(window.polls));
-    document.getElementById('pollQuestion').value=''; document.querySelectorAll('.poll-opt').forEach((n,i)=>{ if(i>1)n.remove(); else n.value=''; });
-    renderPolls();
-  });
-
-  // Live
-  let webcamStream=null;
+  // --- WEBCAM LIVE ---
+  const liveVideo=document.getElementById('liveVideo');
   document.getElementById('startWebcam').addEventListener('click', async ()=>{
-    if(webcamStream) return alert('Webcam already running');
-    try{ webcamStream=await navigator.mediaDevices.getUserMedia({ video:true, audio:true });
-      document.getElementById('webcamLive').srcObject=webcamStream;
-    }catch(err){ alert('Webcam error: '+err); }
-  });
-  document.getElementById('stopWebcam').addEventListener('click', ()=>{ if(webcamStream){ webcamStream.getTracks().forEach(t=>t.stop()); webcamStream=null; document.getElementById('webcamLive').srcObject=null; } });
-
-  document.getElementById('genKey').addEventListener('click', ()=>{
-    const key='LIVE-'+Math.random().toString(36).substring(2,10).toUpperCase(); document.getElementById('streamKey').textContent=key;
+    try{
+      const stream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});
+      liveVideo.srcObject=stream;
+      liveVideo.play();
+    } catch(e){ alert('Webcam error: '+e.message); }
   });
 
-  const liveComments=JSON.parse(localStorage.getItem('liveComments')||'[]');
-  const superChatFeed=JSON.parse(localStorage.getItem('superChatFeed')||'[]');
-
-  function renderLiveComments(){ document.getElementById('liveComments').innerHTML=liveComments.map(c=>`<div class="comment">${escapeHtml(c)}</div>`).join(''); }
-  function renderLiveSuperChats(){ document.getElementById('superChatFeed').innerHTML=superChatFeed.map(s=>`<div class="superchat">₹${escapeHtml(s.amount)} - ${escapeHtml(s.name)}: ${escapeHtml(s.msg)}</div>`).join(''); }
-
+  // --- LIVE CHAT ---
+  const liveComments=document.getElementById('liveComments');
+  const liveCommentInput=document.getElementById('liveCommentInput');
   document.getElementById('sendLiveComment').addEventListener('click', ()=>{
-    const val=document.getElementById('liveCommentInput').value.trim(); if(!val) return;
-    liveComments.push(val); localStorage.setItem('liveComments', JSON.stringify(liveComments));
-    renderLiveComments(); document.getElementById('liveCommentInput').value='';
-  });
-  document.getElementById('sendSuperChat').addEventListener('click', ()=>{
-    const name=(document.getElementById('scName').value||'').trim();
-    const msg=(document.getElementById('scMsg').value||'').trim();
-    const amount=(document.getElementById('scAmount').value||'').trim(); if(!name||!msg||!amount) return alert('Fill all fields');
-    superChatFeed.push({ name, msg, amount }); localStorage.setItem('superChatFeed', JSON.stringify(superChatFeed));
-    renderLiveSuperChats();
-    document.getElementById('scName').value=''; document.getElementById('scMsg').value=''; document.getElementById('scAmount').value='';
+    const val=liveCommentInput.value.trim();
+    if(!val)return;
+    const div=document.createElement('div'); div.className='comment'; div.textContent=(window.profile.name||'Anonymous')+': '+val;
+    liveComments.appendChild(div);
+    liveCommentInput.value='';
   });
 
-  document.getElementById('clearLocal').addEventListener('click', ()=>{
-    if(confirm('Clear all data?')){ localStorage.clear(); location.reload(); }
+  // --- PROFILE ---
+  const profileName=document.getElementById('profileName');
+  document.getElementById('saveProfile').addEventListener('click', ()=>{
+    window.profile.name=profileName.value.trim()||'Anonymous';
+    localStorage.setItem('profile', JSON.stringify(window.profile));
+    alert('Profile saved!');
   });
+  if(window.profile.name) profileName.value=window.profile.name;
 
-  document.querySelectorAll('[data-tab]').forEach(btn=>{ btn.addEventListener('click', ()=>switchTab(btn.dataset.tab)); });
+  // --- STORIES ---
+  document.getElementById('storyForm').addEventListener('submit', e=>{
+    e.preventDefault();
+    const text=document.getElementById('storyText').value.trim();
+    if(!text) return;
+    window.stories.unshift({text,by:window.profile.name||'Anonymous',time:new Date().toLocaleTimeString()});
+    localStorage.setItem('stories', JSON.stringify(window.stories));
+    document.getElementById('storyText').value='';
+    renderStories();
+  });
+  function renderStories(){
+    const feed=document.getElementById('storyFeed'); feed.innerHTML='';
+    window.stories.forEach((s,i)=>{
+      const div=document.createElement('div'); div.className='card';
+      div.innerHTML=`<b>${escapeHtml(s.by)}</b> <span class="small">${s.time}</span><p>${escapeHtml(s.text)}</p>`;
+      const del=document.createElement('button'); del.className='action btn-dark'; del.textContent='Delete';
+      del.addEventListener('click',()=>{ if(confirm('Delete story?')){ window.stories.splice(i,1); localStorage.setItem('stories',JSON.stringify(window.stories)); renderStories(); } });
+      div.appendChild(del);
+      feed.appendChild(div);
+    });
+  }
 
-  seedDemoData(); renderPosts(); renderPolls(); renderLiveComments(); renderLiveSuperChats();
-
-  document.getElementById('uploadForm').addEventListener('submit', e=>{ e.preventDefault(); uploadPost(); });
+  // --- INIT ---
+  seedDemoData();
+  renderPosts();
+  renderPolls();
+  renderStories();
+  document.querySelectorAll('.nav-btn').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tab)));
 
 })();
 </script>
