@@ -4,9 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>InstaTube — Admin Panel</title>
-<meta name="description" content="InstaTube — Admin can upload, users can only view.">
+<meta name="description" content="InstaTube — Persistent uploads & interactions">
 
-<!-- Favicon Icon -->
 <link rel="icon" type="image/svg+xml" 
  href="data:image/svg+xml;base64,PHN2ZyBmaWxsPSJyZWQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgdmlld0JveD0iMCAwIDI1NiAyNTYiPjxjaXJjbGUgY3g9IjEyOCIgY3k9IjEyOCIgcj0iMTE4IiBmaWxsPSIjZjAwIi8+PHBhdGggZD0iTTEwMCA4MHY5Nmw3Mi00OC05Mi00OCIvPjwvc3ZnPg=="
 />
@@ -87,7 +86,7 @@ video, img, audio { max-width:100%; height:auto; border-radius:8px; display:bloc
           <button class="action btn-red" type="submit">Publish</button>
           <button class="action btn-dark" type="button" id="clearLocal">Clear Local Storage</button>
         </div>
-        <p class="small" style="margin-top:8px;opacity:0.8">Note: Images & audio are saved as data-URLs. Videos stored as blob URLs (may not persist if deleted).</p>
+        <p class="small" style="margin-top:8px;opacity:0.8">All uploaded posts are persistent and visible to all users.</p>
       </form>
     </section>
 
@@ -112,14 +111,16 @@ video, img, audio { max-width:100%; height:auto; border-radius:8px; display:bloc
       <div class="card">
         <p><b>Stream Key:</b> <span id="streamKey">—</span></p>
         <button class="action btn-red" id="genKey">Generate Stream Key</button>
-        <p class="small" style="margin-top:10px;opacity:0.8">Use OBS Studio or any streaming software with RTMP URL: <code>rtmp://yourserver/live</code></p>
+        <p class="small" style="margin-top:10px;opacity:0.8">Use this key in OBS Studio (Settings → Stream → Service: Custom). RTMP URL example: <code>rtmp://yourserver/live</code></p>
       </div>
 
       <div class="card">
-        <h3>Go Live Using Webcam</h3>
-        <video id="webcamLive" autoplay muted playsinline style="background:#000;width:100%;border-radius:8px;"></video>
-        <button class="action btn-green" id="startWebcam">Start Webcam Live</button>
-        <button class="action btn-red" id="stopWebcam">Stop Webcam Live</button>
+        <h3>Webcam Live Stream</h3>
+        <video id="webcamLive" autoplay playsinline muted style="width:100%;border-radius:8px;background:#000"></video>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="action btn-green" id="startWebcam">Start Webcam</button>
+          <button class="action btn-red" id="stopWebcam">Stop Webcam</button>
+        </div>
       </div>
 
       <div class="card">
@@ -140,246 +141,171 @@ video, img, audio { max-width:100%; height:auto; border-radius:8px; display:bloc
         <div id="superChatFeed" style="margin-top:8px"></div>
       </div>
     </section>
-
   </main>
 </div>
 
 <script>
 (function(){
-  // Persistent storage
+  // Persistent posts, polls, likes/comments
   window.posts = JSON.parse(localStorage.getItem('posts') || '[]');
   window.polls = JSON.parse(localStorage.getItem('polls') || '[]');
   window.userLikes = JSON.parse(localStorage.getItem('userLikes') || '{}');
 
   function seedDemoData(){
-    if(window.posts.length === 0){
+    if(window.posts.length===0){
       const svg = "<svg xmlns='http://www.w3.org/2000/svg' width='800' height='450'><rect width='100%' height='100%' fill='#111'/><text x='50%' y='50%' fill='#fff' font-size='28' text-anchor='middle' dominant-baseline='central'>Welcome to InstaTube Demo</text></svg>";
       const img = 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
-      window.posts.push({ title: 'Welcome to InstaTube', caption: 'Sample image post — admin only uploads.', url: img, type:'image', comments:[], superchats:[], likes:0 });
+      window.posts.push({ title:'Welcome', caption:'Sample image post', url:img, type:'image', comments:[], superchats:[], likes:0 });
       localStorage.setItem('posts', JSON.stringify(window.posts));
     }
-    if(window.polls.length === 0){
-      window.polls.push({ q: 'Do you like this demo?', opts: ['Yes','No'], votes: [0,0] });
+    if(window.polls.length===0){
+      window.polls.push({ q:'Do you like this demo?', opts:['Yes','No'], votes:[0,0] });
       localStorage.setItem('polls', JSON.stringify(window.polls));
     }
   }
 
+  function escapeHtml(str){ if(!str && str!==0) return ''; return String(str).replace(/[&<>"']/g, function(m){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[m]; }); }
+
   function switchTab(tab){
-    document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
-    const el = document.getElementById(tab);
-    if(el) el.classList.add('active');
-    if(tab === 'home') renderPosts();
-    if(tab === 'polls') renderPolls();
+    document.querySelectorAll('section').forEach(s=>s.classList.remove('active'));
+    document.getElementById(tab).classList.add('active');
+    if(tab==='home') renderPosts();
+    if(tab==='polls') renderPolls();
   }
-  window.switchTab = switchTab;
 
   function renderPosts(){
-    const feed = document.getElementById('videoFeed');
-    feed.innerHTML = '';
-    window.posts.forEach((p, i) => {
-      const card = document.createElement('div'); card.className = 'card';
-      let mediaWrapper = document.createElement('div');
-      if(p.type === 'image' || (p.url && /data:image|\.png|\.jpg|\.jpeg|\.svg/i.test(p.url))){
-        const img = document.createElement('img'); img.src = p.url; img.alt = p.title || 'image'; mediaWrapper.appendChild(img);
-      } else if(p.type === 'audio' || (p.url && /\.mp3|\.wav|audio\//i.test(p.url))){
-        const audio = document.createElement('audio'); audio.controls = true; audio.src = p.url; mediaWrapper.appendChild(audio);
-      } else {
-        const video = document.createElement('video'); video.controls = true; video.src = p.url; video.style.width = '100%'; mediaWrapper.appendChild(video);
-      }
+    const feed = document.getElementById('videoFeed'); feed.innerHTML='';
+    window.posts.forEach((p,i)=>{
+      const card=document.createElement('div'); card.className='card';
+      const title=document.createElement('h3'); title.textContent=p.title;
+      const cap=document.createElement('p'); cap.textContent=p.caption;
+      const mediaWrapper=document.createElement('div');
+      if(p.type==='image'||/data:image|\.png|\.jpg|\.jpeg|\.svg/i.test(p.url)){ const img=document.createElement('img'); img.src=p.url; mediaWrapper.appendChild(img); }
+      else if(p.type==='audio'||/\.mp3|\.wav|audio\//i.test(p.url)){ const audio=document.createElement('audio'); audio.controls=true; audio.src=p.url; mediaWrapper.appendChild(audio); }
+      else{ const video=document.createElement('video'); video.controls=true; video.src=p.url; mediaWrapper.appendChild(video); }
 
-      const title = document.createElement('h3'); title.textContent = p.title || 'Untitled';
-      const cap = document.createElement('p'); cap.textContent = p.caption || '';
+      // Comments
+      const commentBox=document.createElement('div'); commentBox.className='comment-box';
+      const commentsDiv=document.createElement('div'); commentsDiv.innerHTML=p.comments.map(c=>`<div class="comment">${escapeHtml(c)}</div>`).join('');
+      const commentInput=document.createElement('input'); commentInput.placeholder='Add a comment';
+      const commentBtn=document.createElement('button'); commentBtn.textContent='Send'; commentBtn.className='action btn-dark';
+      commentBtn.addEventListener('click', ()=>{
+        const val=commentInput.value.trim(); if(!val) return; p.comments.push(val);
+        localStorage.setItem('posts', JSON.stringify(window.posts)); renderPosts();
+      });
+      commentBox.appendChild(commentsDiv); commentBox.appendChild(commentInput); commentBox.appendChild(commentBtn);
 
-      // Like button
-      const likeBtn = document.createElement('button'); likeBtn.className='action btn-green';
-      likeBtn.textContent = `👍 Like (${p.likes || 0})`;
-      if(window.userLikes[i]) likeBtn.style.opacity=0.5;
+      // Likes
+      const likeBtn=document.createElement('button'); likeBtn.className='action btn-green'; likeBtn.textContent=`Like (${p.likes||0})`;
       likeBtn.addEventListener('click', ()=>{
-        if(window.userLikes[i]) return alert('You already liked/unliked this post');
-        p.likes = (p.likes||0) +1;
-        window.userLikes[i] = true;
-        localStorage.setItem('posts', JSON.stringify(window.posts));
-        localStorage.setItem('userLikes', JSON.stringify(window.userLikes));
-        renderPosts();
+        if(window.userLikes[i]) return alert('You already liked/unliked'); p.likes=p.likes+1||1;
+        window.userLikes[i]=true; localStorage.setItem('userLikes', JSON.stringify(window.userLikes));
+        localStorage.setItem('posts', JSON.stringify(window.posts)); renderPosts();
       });
 
-      const commentBox = document.createElement('div'); commentBox.className = 'comment-box';
-      const commentTitle = document.createElement('h4'); commentTitle.textContent = 'Comments';
-      const commentsDiv = document.createElement('div'); commentsDiv.id = `comments-${i}`;
-      commentsDiv.innerHTML = p.comments.map(c => `<div class="comment">${escapeHtml(c)}</div>`).join('');
-      const commentInput = document.createElement('input'); commentInput.type='text'; commentInput.placeholder='Add a comment'; commentInput.id = `cinput-${i}`;
-      const commentBtn = document.createElement('button'); commentBtn.className='action btn-dark'; commentBtn.textContent='Send';
-      commentBtn.addEventListener('click', () => addComment(i, commentInput));
-      commentBox.appendChild(commentTitle); commentBox.appendChild(commentsDiv); commentBox.appendChild(commentInput); commentBox.appendChild(commentBtn);
+      // SuperChat
+      const scBox=document.createElement('div'); scBox.className='comment-box';
+      scBox.innerHTML=p.superchats.map(s=>`<div class="superchat">₹${escapeHtml(s.amount)} - ${escapeHtml(s.name)}: ${escapeHtml(s.msg)}</div>`).join('');
 
-      const scBox = document.createElement('div'); scBox.className = 'comment-box';
-      const scTitle = document.createElement('h4'); scTitle.textContent = 'Super Chats';
-      const scDiv = document.createElement('div'); scDiv.id = `sc-${i}`; scDiv.innerHTML = p.superchats.map(s => `<div class="superchat">₹${escapeHtml(s.amount)} - ${escapeHtml(s.name)}: ${escapeHtml(s.msg)}</div>`).join('');
-      const scName = document.createElement('input'); scName.type='text'; scName.placeholder='Name'; scName.id = `scname-${i}`;
-      const scMsg = document.createElement('input'); scMsg.type='text'; scMsg.placeholder='Message'; scMsg.id = `scmsg-${i}`;
-      const scAmt = document.createElement('input'); scAmt.type='number'; scAmt.placeholder='Amount (₹)'; scAmt.id = `scamt-${i}`;
-      const scBtn = document.createElement('button'); scBtn.className='action btn-green'; scBtn.textContent='Super Chat';
-      scBtn.addEventListener('click', () => addPostSuperChat(i, scName, scMsg, scAmt));
-      scBox.appendChild(scTitle); scBox.appendChild(scDiv); scBox.appendChild(scName); scBox.appendChild(scMsg); scBox.appendChild(scAmt); scBox.appendChild(scBtn);
-
-      card.appendChild(title);
-      card.appendChild(mediaWrapper);
-      card.appendChild(likeBtn);
-      card.appendChild(cap);
-      card.appendChild(commentBox);
-      card.appendChild(scBox);
-
+      card.appendChild(title); card.appendChild(mediaWrapper); card.appendChild(cap); card.appendChild(commentBox); card.appendChild(likeBtn); card.appendChild(scBox);
       feed.appendChild(card);
     });
   }
 
-  function escapeHtml(str){ if(!str && str !== 0) return ''; return String(str).replace(/[&<>"']/g, function(m){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[m]; }); }
-
-  function addComment(index, inputEl){
-    const val = inputEl.value.trim();
-    if(!val) return alert('Comment is empty');
-    window.posts[index].comments.push(val);
-    localStorage.setItem('posts', JSON.stringify(window.posts));
-    renderPosts();
-  }
-  window.addComment = addComment;
-
-  function addPostSuperChat(index, nameEl, msgEl, amtEl){
-    const name = (nameEl.value || '').trim();
-    const msg = (msgEl.value || '').trim();
-    const amt = (amtEl.value || '').trim();
-    if(!name || !msg || !amt) return alert('Fill all SuperChat fields');
-    window.posts[index].superchats.push({ name, msg, amount: amt });
-    localStorage.setItem('posts', JSON.stringify(window.posts));
-    renderPosts();
-  }
-  window.addPostSuperChat = addPostSuperChat;
-
   function uploadPost(){
-    const title = document.getElementById('titleInput').value.trim();
-    const caption = document.getElementById('captionInput').value.trim();
-    const file = document.getElementById('fileInput').files[0];
-    if(!title || !file) return alert('Need file & title');
+    const file=document.getElementById('fileInput').files[0]; const title=document.getElementById('titleInput').value.trim();
+    const caption=document.getElementById('captionInput').value.trim(); if(!file||!title) return alert('File & title required');
 
-    if(file.type.startsWith('image/') || file.type.startsWith('audio/')){
-      const reader = new FileReader();
-      reader.onload = function(e){
-        const url = e.target.result;
-        const type = file.type.startsWith('image/') ? 'image' : 'audio';
+    if(file.type.startsWith('image/')||file.type.startsWith('audio/')){
+      const reader=new FileReader();
+      reader.onload=e=>{
+        const url=e.target.result;
+        const type=file.type.startsWith('image/')?'image':'audio';
         window.posts.unshift({ title, caption, url, type, comments:[], superchats:[], likes:0 });
-        localStorage.setItem('posts', JSON.stringify(window.posts));
-        renderPosts();
-        document.getElementById('uploadForm').reset();
-        alert('Published!');
-      };
-      reader.readAsDataURL(file);
-    } else {
-      const url = URL.createObjectURL(file);
+        localStorage.setItem('posts', JSON.stringify(window.posts)); renderPosts(); document.getElementById('uploadForm').reset();
+      }; reader.readAsDataURL(file);
+    } else{
+      const url=URL.createObjectURL(file);
       window.posts.unshift({ title, caption, url, type:'video', comments:[], superchats:[], likes:0 });
-      localStorage.setItem('posts', JSON.stringify(window.posts));
-      renderPosts();
-      document.getElementById('uploadForm').reset();
-      alert('Published! (video stored as temporary blob URL)');
+      localStorage.setItem('posts', JSON.stringify(window.posts)); renderPosts(); document.getElementById('uploadForm').reset();
     }
   }
-  window.uploadPost = uploadPost;
 
-  function addPollOption(){
-    const inp = document.createElement('input'); inp.placeholder = 'Option'; inp.className = 'poll-opt';
-    document.getElementById('pollOptions').appendChild(inp);
-  }
-  document.getElementById('addPollOption').addEventListener('click', function(e){ e.preventDefault(); addPollOption(); });
-
-  function createPoll(){
-    const q = document.getElementById('pollQuestion').value.trim();
-    const opts = Array.from(document.querySelectorAll('.poll-opt')).map(i=>i.value.trim()).filter(Boolean);
-    if(!q || opts.length < 2) return alert('Need question and 2+ options');
-    window.polls.unshift({ q, opts, votes: Array(opts.length).fill(0) });
-    localStorage.setItem('polls', JSON.stringify(window.polls));
-    renderPolls();
-  }
-  document.getElementById('createPoll').addEventListener('click', createPoll);
-
-  function renderPolls(){
-    const container = document.getElementById('pollList'); container.innerHTML = '';
+  // Polls
+  function renderPolls(){ const list=document.getElementById('pollList'); list.innerHTML='';
     window.polls.forEach((p,i)=>{
-      const card = document.createElement('div'); card.className='card';
-      const q = document.createElement('h4'); q.textContent = p.q;
-      const ul = document.createElement('ul');
+      const div=document.createElement('div'); div.className='card';
+      const q=document.createElement('h4'); q.textContent=p.q;
+      div.appendChild(q);
       p.opts.forEach((o,j)=>{
-        const li = document.createElement('li'); li.textContent = `${o} (${p.votes[j]})`;
-        li.style.cursor = 'pointer';
-        li.addEventListener('click', ()=>{
-          p.votes[j]++;
-          localStorage.setItem('polls', JSON.stringify(window.polls));
-          renderPolls();
-        });
-        ul.appendChild(li);
+        const btn=document.createElement('button'); btn.className='action btn-dark'; btn.style.display='block'; btn.style.margin='6px 0';
+        btn.textContent=`${o} (${p.votes[j]})`;
+        btn.addEventListener('click', ()=>{ p.votes[j]++; localStorage.setItem('polls', JSON.stringify(window.polls)); renderPolls(); });
+        div.appendChild(btn);
       });
-      card.appendChild(q); card.appendChild(ul);
-      container.appendChild(card);
+      list.appendChild(div);
     });
   }
 
-  document.querySelectorAll('.nav-btn').forEach(btn=>{
-    btn.addEventListener('click', ()=>switchTab(btn.dataset.tab));
+  function addPollOption(){ const inp=document.createElement('input'); inp.placeholder='Option'; inp.className='poll-opt';
+    document.getElementById('pollOptions').appendChild(inp); }
+  document.getElementById('addPollOption').addEventListener('click', e=>{ e.preventDefault(); addPollOption(); });
+
+  document.getElementById('createPoll').addEventListener('click', e=>{
+    e.preventDefault();
+    const q=document.getElementById('pollQuestion').value.trim();
+    const opts=Array.from(document.querySelectorAll('.poll-opt')).map(i=>i.value.trim()).filter(Boolean);
+    if(!q||opts.length<2) return alert('Need question & 2+ options');
+    window.polls.unshift({ q, opts, votes:Array(opts.length).fill(0) }); localStorage.setItem('polls', JSON.stringify(window.polls));
+    document.getElementById('pollQuestion').value=''; document.querySelectorAll('.poll-opt').forEach((n,i)=>{ if(i>1)n.remove(); else n.value=''; });
+    renderPolls();
   });
 
-  document.getElementById('uploadForm').addEventListener('submit', function(e){ e.preventDefault(); uploadPost(); });
-  document.getElementById('clearLocal').addEventListener('click', ()=>{ localStorage.clear(); window.posts=[]; window.polls=[]; window.userLikes={}; renderPosts(); renderPolls(); alert('Cleared local storage'); });
-
-  // Live Webcam
-  let webcamStream = null;
+  // Live
+  let webcamStream=null;
   document.getElementById('startWebcam').addEventListener('click', async ()=>{
-    if(webcamStream){ alert('Webcam already running'); return; }
-    try{
-      webcamStream = await navigator.mediaDevices.getUserMedia({ video:true, audio:true });
-      document.getElementById('webcamLive').srcObject = webcamStream;
+    if(webcamStream) return alert('Webcam already running');
+    try{ webcamStream=await navigator.mediaDevices.getUserMedia({ video:true, audio:true });
+      document.getElementById('webcamLive').srcObject=webcamStream;
     }catch(err){ alert('Webcam error: '+err); }
   });
-  document.getElementById('stopWebcam').addEventListener('click', ()=>{
-    if(webcamStream){ webcamStream.getTracks().forEach(t=>t.stop()); webcamStream=null; document.getElementById('webcamLive').srcObject=null; }
-  });
+  document.getElementById('stopWebcam').addEventListener('click', ()=>{ if(webcamStream){ webcamStream.getTracks().forEach(t=>t.stop()); webcamStream=null; document.getElementById('webcamLive').srcObject=null; } });
 
-  // Generate dummy Stream Key
   document.getElementById('genKey').addEventListener('click', ()=>{
-    const key = Math.random().toString(36).substring(2,12);
-    document.getElementById('streamKey').textContent = key;
+    const key='LIVE-'+Math.random().toString(36).substring(2,10).toUpperCase(); document.getElementById('streamKey').textContent=key;
   });
 
-  // Live Chat
-  const liveComments = [];
-  function renderLiveComments(){
-    document.getElementById('liveComments').innerHTML = liveComments.map(c=>`<div class="comment">${escapeHtml(c)}</div>`).join('');
-  }
+  const liveComments=JSON.parse(localStorage.getItem('liveComments')||'[]');
+  const superChatFeed=JSON.parse(localStorage.getItem('superChatFeed')||'[]');
+
+  function renderLiveComments(){ document.getElementById('liveComments').innerHTML=liveComments.map(c=>`<div class="comment">${escapeHtml(c)}</div>`).join(''); }
+  function renderLiveSuperChats(){ document.getElementById('superChatFeed').innerHTML=superChatFeed.map(s=>`<div class="superchat">₹${escapeHtml(s.amount)} - ${escapeHtml(s.name)}: ${escapeHtml(s.msg)}</div>`).join(''); }
+
   document.getElementById('sendLiveComment').addEventListener('click', ()=>{
-    const val = document.getElementById('liveCommentInput').value.trim();
-    if(!val) return;
-    liveComments.push(val);
-    document.getElementById('liveCommentInput').value='';
-    renderLiveComments();
+    const val=document.getElementById('liveCommentInput').value.trim(); if(!val) return;
+    liveComments.push(val); localStorage.setItem('liveComments', JSON.stringify(liveComments));
+    renderLiveComments(); document.getElementById('liveCommentInput').value='';
   });
-
-  // Super Chat
-  const superChatFeed = [];
-  function renderLiveSuperChats(){
-    document.getElementById('superChatFeed').innerHTML = superChatFeed.map(c=>`<div class="superchat">₹${escapeHtml(c.amount)} - ${escapeHtml(c.name)}: ${escapeHtml(c.msg)}</div>`).join('');
-  }
   document.getElementById('sendSuperChat').addEventListener('click', ()=>{
-    const name = document.getElementById('scName').value.trim();
-    const msg = document.getElementById('scMsg').value.trim();
-    const amt = document.getElementById('scAmount').value.trim();
-    if(!name || !msg || !amt) return alert('Fill all SuperChat fields');
-    superChatFeed.push({ name,msg,amount:amt });
+    const name=(document.getElementById('scName').value||'').trim();
+    const msg=(document.getElementById('scMsg').value||'').trim();
+    const amount=(document.getElementById('scAmount').value||'').trim(); if(!name||!msg||!amount) return alert('Fill all fields');
+    superChatFeed.push({ name, msg, amount }); localStorage.setItem('superChatFeed', JSON.stringify(superChatFeed));
     renderLiveSuperChats();
     document.getElementById('scName').value=''; document.getElementById('scMsg').value=''; document.getElementById('scAmount').value='';
   });
 
-  seedDemoData();
-  renderPosts();
-  renderPolls();
+  document.getElementById('clearLocal').addEventListener('click', ()=>{
+    if(confirm('Clear all data?')){ localStorage.clear(); location.reload(); }
+  });
+
+  document.querySelectorAll('[data-tab]').forEach(btn=>{ btn.addEventListener('click', ()=>switchTab(btn.dataset.tab)); });
+
+  seedDemoData(); renderPosts(); renderPolls(); renderLiveComments(); renderLiveSuperChats();
+
+  document.getElementById('uploadForm').addEventListener('submit', e=>{ e.preventDefault(); uploadPost(); });
+
 })();
 </script>
-
 </body>
 </html>
