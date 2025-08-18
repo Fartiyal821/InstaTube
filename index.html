@@ -1,358 +1,614 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>InstaTube — Admin & Users</title>
-<meta name="description" content="InstaTube — Admin can upload, users can watch live and chat.">
-
-<!-- Favicon Icon -->
-<link rel="icon" type="image/svg+xml" 
- href="data:image/svg+xml;base64,PHN2ZyBmaWxsPSJyZWQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgdmlld0JveD0iMCAwIDI1NiAyNTYiPjxjaXJjbGUgY3g9IjEyOCIgY3k9IjEyOCIgcj0iMTE4IiBmaWxsPSIjZjAwIi8+PHBhdGggZD0iTTEwMCA4MHY5Nmw3Mi00OC05Mi00OCIvPjwvc3ZnPg=="
-/>
-
-<style>
-:root{ --bg:#0a0a0a; --panel:#111; --muted:#888; --accent:#ff2b2b; }
-*{box-sizing:border-box}
-body { font-family: Inter, system-ui, -apple-system, Arial, sans-serif; background:var(--bg); color:#eee; margin:0; -webkit-font-smoothing:antialiased }
-header { background:var(--panel); border-bottom:1px solid #222; padding:12px 16px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:50 }
-header h1 { font-weight:700; font-size:18px; margin:0 }
-header h1 span { color:var(--accent) }
-
-.container { display:grid; grid-template-columns:240px 1fr; gap:20px; padding:20px; max-width:1300px; margin:0 auto }
-aside { background:var(--panel); padding:12px; border-radius:12px; height:fit-content }
-.nav-btn { display:block; width:100%; margin:8px 0; padding:10px; border-radius:10px; background:#161616; color:#fff; border:1px solid #222; cursor:pointer; text-align:left }
-.nav-btn:hover{ background:#1f1f1f }
-
-main { min-height:80vh }
-section { display:none }
-section.active { display:block }
-.card { background:var(--panel); border:1px solid #222; border-radius:12px; padding:14px; margin-bottom:16px }
-input, textarea { width:100%; padding:10px; margin:8px 0; border-radius:8px; border:1px solid #333; background:transparent; color:#fff }
-button.action { padding:10px 14px; margin-top:8px; border:none; border-radius:8px; cursor:pointer; font-weight:700 }
-.btn-red{ background:#e53935; color:#fff }
-.btn-green{ background:#059669; color:#fff }
-.btn-dark{ background:#222; color:#fff }
-
-.comment-box { margin-top:10px }
-.comment { background:#141414; padding:8px; border-radius:8px; margin:6px 0; font-size:0.95rem }
-.superchat { background:#ffcc00; color:#000; padding:8px; border-radius:8px; margin:6px 0; font-weight:700 }
-
-video, img, audio { max-width:100%; height:auto; border-radius:8px; display:block }
-
-@media (max-width: 1100px){
-  .container { grid-template-columns:1fr; padding:12px }
-  aside { display:flex; gap:8px; border-radius:10px; padding:8px }
-  .nav-btn{ flex:1; margin:0 }
-}
-@media (max-width:600px){
-  header h1{ font-size:16px }
-  .card{ padding:10px }
-  .nav-btn{ padding:10px 8px }
-}
-
-.small { font-size:0.9rem; opacity:0.85 }
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>InstaTube — Live • Upload • Polls • Story</title>
+  <meta name="description" content="InstaTube: a clean, fast, admin‑first YouTube × Instagram hybrid. Upload, go live (webcam), run polls, stories, chat. Data persists locally.">
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root{
+      --brand:#ff0000; /* YouTube red */
+      --ink:#e5e7eb;   /* light text on dark */
+    }
+    html{scroll-behavior:smooth}
+    /* Basic theming */
+    body{background:#0b0b0f;color:#e5e7eb}
+    .glass{backdrop-filter:saturate(120%) blur(10px); background:rgba(255,255,255,0.04);}
+    .brand{color:var(--brand)}
+    .brand-bg{background:var(--brand)}
+    /* Pointer for all clickable controls */
+    button,[role="button"],a,.clickable,input[type=checkbox],summary,select,label{cursor:pointer}
+    /* Hide elements utility */
+    .hidden-tab{display:none}
+    /* Scrollbar subtle */
+    ::-webkit-scrollbar{height:10px;width:10px}
+    ::-webkit-scrollbar-thumb{background:#20222b;border-radius:9999px}
+    .ring-story{box-shadow:0 0 0 3px #000, 0 0 0 5px #22d3ee}
+    .line-clamp-2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  </style>
 </head>
-<body>
+<body class="min-h-screen">
+  <!-- Dynamic manifest + SW injected by JS to keep single-file delivery -->
+  <script>
+    // Create a tiny manifest at runtime so the site can be installed as a PWA.
+    const manifest = {
+      name:"InstaTube",
+      short_name:"InstaTube",
+      start_url:"./",
+      display:"standalone",
+      background_color:"#0b0b0f",
+      theme_color:"#ff0000",
+      icons:[{src:"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'><rect width='128' height='128' rx='26' fill='%230b0b0f'/><path d='M96 64 48 92V36z' fill='%23ff0000'/></svg>",sizes:"192x192",type:"image/svg+xml"}]
+    };
+    const mblob = new Blob([JSON.stringify(manifest)],{type:'application/manifest+json'});
+    const murl = URL.createObjectURL(mblob); const link = document.createElement('link'); link.rel='manifest'; link.href=murl; document.head.appendChild(link);
+    // Minimal SW for offline (generated on the fly)
+    const swCode = `self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open('it-v1').then(c=>c.addAll(['./'])))});
+self.addEventListener('activate',e=>self.clients.claim());
+self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{const cp=res.clone();caches.open('it-v1').then(c=>c.put(e.request,cp));return res;})).catch(()=>new Response('Offline',{status:200})))});`;
+    try{const swBlob=new Blob([swCode],{type:'text/javascript'}); const swUrl=URL.createObjectURL(swBlob); navigator.serviceWorker?.register(swUrl);}catch(err){}
+  </script>
 
-<header>
-  <h1>Insta<span>Tube</span> — Live & Upload</h1>
-</header>
+  <!-- Top Nav -->
+  <header class="sticky top-0 z-40 border-b border-white/10 glass">
+    <div class="max-w-6xl mx-auto px-3">
+      <div class="flex items-center gap-3 py-3">
+        <div class="flex items-center gap-2 font-semibold text-lg">
+          <span class="inline-flex items-center justify-center w-8 h-8 rounded-xl brand-bg text-white">▶</span>
+          <span>Insta<span class="brand">Tube</span></span>
+        </div>
+        <nav class="ml-auto flex items-center gap-1 overflow-x-auto">
+          <button data-tab="home" class="px-3 py-1.5 rounded-xl hover:bg-white/10 active:bg-white/20">Home</button>
+          <button data-tab="upload" class="px-3 py-1.5 rounded-xl hover:bg-white/10">Upload</button>
+          <button data-tab="polls" class="px-3 py-1.5 rounded-xl hover:bg-white/10">Polls</button>
+          <button data-tab="live" class="px-3 py-1.5 rounded-xl hover:bg-white/10">Live</button>
+          <button data-tab="profile" class="px-3 py-1.5 rounded-xl hover:bg-white/10">Profile</button>
+          <button data-tab="story" class="px-3 py-1.5 rounded-xl hover:bg-white/10">Story</button>
+        </nav>
+        <div class="ml-2 flex items-center gap-2">
+          <button id="installBtn" class="px-3 py-1 rounded-xl text-sm bg-white/10 hover:bg-white/20">Install</button>
+          <button id="adminBadge" class="px-3 py-1 rounded-xl text-sm bg-emerald-500/15 text-emerald-300 hidden">Admin</button>
+        </div>
+      </div>
+    </div>
+  </header>
 
-<div class="container">
-  <aside>
-    <button class="nav-btn" data-tab="home">🏠 Home</button>
-    <button class="nav-btn" data-tab="upload">⬆️ Upload</button>
-    <button class="nav-btn" data-tab="polls">📊 Polls</button>
-    <button class="nav-btn" data-tab="live">🔴 Live</button>
-    <button class="nav-btn" data-tab="profile">👤 Profile</button>
-    <button class="nav-btn" data-tab="story">📖 Story</button>
-  </aside>
+  <main class="max-w-6xl mx-auto p-3 space-y-6">
+    <!-- Stories rail (always visible) -->
+    <section class="mt-2" aria-label="Stories">
+      <div id="storiesRail" class="flex gap-3 overflow-x-auto pb-2"></div>
+    </section>
 
-  <main>
     <!-- HOME -->
-    <section id="home" class="active">
-      <h2>Home</h2>
-      <div id="videoFeed"></div>
+    <section id="tab-home" class="space-y-4">
+      <div class="flex flex-wrap items-center gap-2">
+        <div class="relative flex-1 min-w-[220px]">
+          <input id="searchInput" class="w-full bg-white/5 rounded-xl px-4 py-2 pr-9 outline-none focus:ring-2 focus:ring-brand/50" placeholder="Search posts… (title, caption)"/>
+          <span class="absolute right-3 top-2.5 opacity-60">⌘K</span>
+        </div>
+        <select id="sortSelect" class="bg-white/5 rounded-xl px-3 py-2">
+          <option value="new">Newest</option>
+          <option value="old">Oldest</option>
+          <option value="title">Title A→Z</option>
+        </select>
+        <button id="exportBtn" class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20">Export Data</button>
+        <label class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20">
+          Import <input id="importInput" type="file" class="hidden" accept="application/json"/>
+        </label>
+      </div>
+      <div id="feed" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"></div>
+      <p class="opacity-60 text-sm">Images & audio saved as data‑URLs. Videos are persisted in IndexedDB. Nothing is uploaded to a server.</p>
     </section>
 
     <!-- UPLOAD -->
-    <section id="upload">
-      <h2>Upload (Admin/User)</h2>
-      <form id="uploadForm" class="card" autocomplete="off">
-        <label class="small">File</label>
-        <input type="file" id="fileInput" accept="video/*,image/*,audio/*">
-        <label class="small">Title</label>
-        <input type="text" id="titleInput" placeholder="Title">
-        <label class="small">Caption</label>
-        <textarea id="captionInput" rows="3" placeholder="Caption"></textarea>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="action btn-red" type="submit">Publish</button>
-          <button class="action btn-dark" type="button" id="clearLocal">Clear All</button>
-        </div>
-        <p class="small" style="margin-top:8px;opacity:0.8">Images & audio saved as data-URLs. Videos stored persistently using localStorage + indexedDB.</p>
-      </form>
+    <section id="tab-upload" class="hidden-tab">
+      <div class="grid md:grid-cols-2 gap-4">
+        <form id="uploadForm" class="space-y-3 glass rounded-2xl p-4">
+          <h2 class="text-lg font-semibold">Upload (Admin)</h2>
+          <div class="border-2 border-dashed border-white/15 rounded-2xl p-6 text-center hover:bg-white/5" id="dropZone">
+            <p class="mb-2">Drop files here or click to choose</p>
+            <input id="fileInput" type="file" accept="video/*,image/*,audio/*" class="mx-auto block" />
+          </div>
+          <div class="grid gap-3">
+            <input id="titleInput" class="bg-white/5 rounded-xl px-3 py-2" placeholder="Title" required />
+            <textarea id="captionInput" class="bg-white/5 rounded-xl px-3 py-2" placeholder="Caption" rows="2"></textarea>
+            <div class="flex gap-2 items-center">
+              <button id="publishBtn" type="submit" class="brand-bg text-white px-4 py-2 rounded-xl disabled:opacity-40">Publish</button>
+              <button id="clearBtn" type="button" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20">Clear</button>
+            </div>
+            <div id="uploadPreview" class="rounded-xl overflow-hidden bg-black/40 aspect-video grid place-items-center text-sm opacity-80">No preview</div>
+          </div>
+          <p class="text-sm opacity-70">Only admin can publish. Toggle admin in Profile.</p>
+        </form>
+
+        <aside class="space-y-3">
+          <div class="glass rounded-2xl p-4">
+            <h3 class="font-semibold mb-2">Tips</h3>
+            <ul class="list-disc list-inside opacity-80 text-sm space-y-1">
+              <li>Videos are stored in your browser using IndexedDB and won’t leave your device.</li>
+              <li>Images & audio are embedded as data‑URLs in the feed for fast load.</li>
+              <li>You can export/import all data from the Home tab.</li>
+            </ul>
+          </div>
+          <div class="glass rounded-2xl p-4">
+            <h3 class="font-semibold mb-2">Keyboard</h3>
+            <ul class="list-disc list-inside opacity-80 text-sm space-y-1">
+              <li><kbd>⌘/Ctrl</kbd> + <kbd>K</kbd> — focus search</li>
+              <li><kbd>⌘/Ctrl</kbd> + <kbd>N</kbd> — new upload</li>
+            </ul>
+          </div>
+        </aside>
+      </div>
     </section>
 
     <!-- POLLS -->
-    <section id="polls">
-      <h2>Create Poll</h2>
-      <div class="card">
-        <input type="text" id="pollQuestion" placeholder="Poll Question">
-        <div id="pollOptions">
-          <input type="text" placeholder="Option 1" class="poll-opt">
-          <input type="text" placeholder="Option 2" class="poll-opt">
-        </div>
-        <div style="display:flex;gap:8px;margin-top:8px">
-          <button class="action btn-dark" id="addPollOption">+ Add Option</button>
-          <button class="action btn-green" id="createPoll">Create Poll</button>
+    <section id="tab-polls" class="hidden-tab">
+      <div class="grid md:grid-cols-2 gap-4">
+        <form id="pollForm" class="glass rounded-2xl p-4 space-y-3">
+          <h2 class="text-lg font-semibold">Create Poll (Admin)</h2>
+          <input id="pollQuestion" class="bg-white/5 rounded-xl px-3 py-2" placeholder="Question" required />
+          <div id="pollOptions" class="space-y-2"></div>
+          <div class="flex gap-2">
+            <button id="addOptionBtn" type="button" class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20">+ Add Option</button>
+            <button id="createPollBtn" type="submit" class="brand-bg text-white px-4 py-2 rounded-xl disabled:opacity-40">Create Poll</button>
+          </div>
+        </form>
+        <div>
+          <h3 class="font-semibold mb-2">Active Polls</h3>
+          <div id="pollList" class="grid gap-3"></div>
         </div>
       </div>
-      <div id="pollList"></div>
     </section>
 
     <!-- LIVE -->
-    <section id="live">
-      <h2>Go Live</h2>
-
-      <div class="card">
-        <p><b>Stream Key:</b> <span id="streamKey">—</span></p>
-        <button class="action btn-red" id="genKey">Generate Stream Key</button>
-        <p class="small" style="margin-top:10px;opacity:0.8">Use this key in OBS Studio (Settings → Stream → Service: Custom, Server: rtmp://YOUR_SERVER/live).</p>
+    <section id="tab-live" class="hidden-tab space-y-4">
+      <div class="grid lg:grid-cols-3 gap-4">
+        <div class="glass rounded-2xl p-4 lg:col-span-2">
+          <h2 class="font-semibold mb-3">Go Live (Webcam)</h2>
+          <video id="liveVideo" class="w-full aspect-video rounded-xl bg-black" autoplay playsinline muted></video>
+          <div class="flex flex-wrap gap-2 mt-3">
+            <button id="startWebcamBtn" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20">Start Webcam</button>
+            <button id="stopWebcamBtn" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20">Stop</button>
+            <button id="recordBtn" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20">Record Clip</button>
+          </div>
+        </div>
+        <div class="glass rounded-2xl p-4">
+          <h2 class="font-semibold mb-3">RTMP Key (for OBS)</h2>
+          <div class="flex gap-2 items-center">
+            <input id="streamKey" class="bg-white/5 rounded-xl px-3 py-2 flex-1" placeholder="—" readonly>
+            <button id="genKeyBtn" class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20">Generate</button>
+          </div>
+          <p class="text-sm opacity-70 mt-2">Use with a custom RTMP server: <code>rtmp://YOUR_SERVER/live</code></p>
+        </div>
       </div>
 
-      <div class="card">
-        <h3>Live Stream</h3>
-        <video id="liveVideo" controls autoplay muted></video>
-        <button class="action btn-green" id="startWebcam">Start Webcam Live</button>
-      </div>
-
-      <div class="card">
-        <h3>Live Chat</h3>
-        <div id="liveComments" style="max-height:200px; overflow-y:auto"></div>
-        <div style="display:flex;gap:8px;margin-top:8px">
-          <input type="text" id="liveCommentInput" placeholder="Add a comment...">
-          <button class="action btn-dark" id="sendLiveComment">Send</button>
+      <div class="grid lg:grid-cols-3 gap-4">
+        <div class="lg:col-span-2 glass rounded-2xl p-4">
+          <h2 class="font-semibold mb-2">Live Chat</h2>
+          <div id="chatBox" class="bg-black/30 rounded-xl p-3 h-64 overflow-y-auto text-sm"></div>
+          <form id="chatForm" class="mt-2 flex gap-2">
+            <input id="chatInput" class="flex-1 bg-white/5 rounded-xl px-3 py-2" placeholder="Say something…" />
+            <button class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20">Send</button>
+          </form>
+        </div>
+        <div class="glass rounded-2xl p-4">
+          <h3 class="font-semibold mb-2">Notes</h3>
+          <p class="text-sm opacity-70">This is a local demo. To broadcast publicly, point OBS to your RTMP server and embed the player here.</p>
         </div>
       </div>
     </section>
 
     <!-- PROFILE -->
-    <section id="profile">
-      <h2>Profile</h2>
-      <div class="card">
-        <label>Username:</label>
-        <input type="text" id="profileName" placeholder="Enter your name">
-        <button class="action btn-green" id="saveProfile">Save Profile</button>
+    <section id="tab-profile" class="hidden-tab grid md:grid-cols-2 gap-4">
+      <div class="glass rounded-2xl p-4 space-y-3">
+        <h2 class="font-semibold">Profile</h2>
+        <label class="block text-sm opacity-80">Username</label>
+        <input id="usernameInput" class="bg-white/5 rounded-xl px-3 py-2" placeholder="Your name" />
+        <button id="saveProfileBtn" class="brand-bg text-white px-4 py-2 rounded-xl">Save Profile</button>
+      </div>
+      <div class="glass rounded-2xl p-4 space-y-3">
+        <h2 class="font-semibold">Admin & Preferences</h2>
+        <div class="space-y-2">
+          <label class="block">Admin passphrase</label>
+          <input id="adminPassInput" class="bg-white/5 rounded-xl px-3 py-2" placeholder="Set or enter passphrase"/>
+          <div class="flex gap-2">
+            <button id="setAdminBtn" class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20">Set/Update</button>
+            <button id="toggleAdminBtn" class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20">Enter Admin Mode</button>
+          </div>
+          <label class="inline-flex items-center gap-2 mt-2 text-sm opacity-80"><input id="onlyAdminUploads" type="checkbox" class="accent-[var(--brand)]"> Only admin can upload</label>
+        </div>
+        <div class="pt-2 border-t border-white/10">
+          <label class="inline-flex items-center gap-2"><input id="themeToggle" type="checkbox" class="accent-[var(--brand)]"> Light mode</label>
+        </div>
       </div>
     </section>
 
     <!-- STORY -->
-    <section id="story">
-      <h2>Story</h2>
-      <form id="storyForm" class="card">
-        <input type="text" id="storyText" placeholder="Add your story...">
-        <button class="action btn-green" type="submit">Post Story</button>
-      </form>
-      <div id="storyFeed"></div>
+    <section id="tab-story" class="hidden-tab">
+      <div class="grid md:grid-cols-2 gap-4">
+        <form id="storyForm" class="glass rounded-2xl p-4 space-y-3">
+          <h2 class="font-semibold">Post Story</h2>
+          <input id="storyFile" type="file" accept="image/*,video/*" class="block" />
+          <div class="flex gap-2 items-center">
+            <button class="brand-bg text-white px-4 py-2 rounded-xl">Post Story</button>
+            <span class="text-sm opacity-70">Stories auto‑expire after 24 hours.</span>
+          </div>
+        </form>
+        <div>
+          <h3 class="font-semibold mb-2">Your Stories</h3>
+          <div id="storyList" class="grid gap-3"></div>
+        </div>
+      </div>
     </section>
-
   </main>
-</div>
 
-<script>
-(function(){
-  // --- Storage ---
-  window.posts = JSON.parse(localStorage.getItem('posts') || '[]');
-  window.polls = JSON.parse(localStorage.getItem('polls') || '[]');
-  window.profile = JSON.parse(localStorage.getItem('profile') || '{}');
-  window.stories = JSON.parse(localStorage.getItem('stories') || '[]');
+  <template id="cardTpl">
+    <article class="glass rounded-2xl overflow-hidden">
+      <div class="aspect-video bg-black grid place-items-center text-sm text-white/60">No media</div>
+      <div class="p-3 space-y-2">
+        <h3 class="font-semibold line-clamp-2"></h3>
+        <p class="text-sm opacity-80 line-clamp-2"></p>
+        <div class="flex items-center justify-between text-sm opacity-70">
+          <span class="timeago"></span>
+          <div class="flex items-center gap-2">
+            <button class="likeBtn px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20">♥ <span>0</span></button>
+            <button class="commentBtn px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20">💬</button>
+            <button class="deleteBtn px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20">🗑</button>
+          </div>
+        </div>
+      </div>
+    </article>
+  </template>
 
-  // --- Demo Data ---
-  function seedDemoData(){
-    if(window.posts.length === 0){
-      const svg = "<svg xmlns='http://www.w3.org/2000/svg' width='800' height='450'><rect width='100%' height='100%' fill='#111'/><text x='50%' y='50%' fill='#fff' font-size='28' text-anchor='middle' dominant-baseline='central'>Welcome to InstaTube Demo</text></svg>";
-      const img = 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
-      window.posts.push({ title:'Welcome', caption:'Sample image post', url: img, type:'image', likes:0, liked:false, comments:[], superchats:[], uploader:'Admin' });
-      localStorage.setItem('posts', JSON.stringify(window.posts));
+  <!-- Dialogs -->
+  <dialog id="commentDlg" class="rounded-2xl p-0 bg-[#121218] text-inherit w-[min(90vw,520px)]">
+    <form method="dialog">
+      <header class="p-3 border-b border-white/10 flex items-center justify-between">
+        <h4 class="font-semibold">Comments</h4>
+        <button value="close" class="px-3 py-1 rounded-xl bg-white/10">✕</button>
+      </header>
+      <div class="p-3 space-y-3 max-h-[60vh] overflow-y-auto" id="commentsBody"></div>
+      <div class="p-3 border-t border-white/10 flex gap-2">
+        <input id="commentInput" class="flex-1 bg-white/5 rounded-xl px-3 py-2" placeholder="Add a comment…"/>
+        <button id="addCommentBtn" class="px-3 py-2 rounded-xl bg-white/10">Post</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Toast -->
+  <div id="toast" class="fixed bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-xl bg-white/90 text-black shadow hidden">Saved</div>
+
+  <footer class="py-8 text-center opacity-60 text-sm">InstaTube — local demo • vNext</footer>
+
+  <script>
+  // =============== UTILITIES ===============
+  const $ = sel => document.querySelector(sel);
+  const $$ = sel => Array.from(document.querySelectorAll(sel));
+  const el = (tag, attrs={}) => Object.assign(document.createElement(tag), attrs);
+  const now = () => Date.now();
+  const fmtAgo = ts => {const s=Math.floor((Date.now()-ts)/1000); if(s<60) return `${s}s ago`; const m=Math.floor(s/60); if(m<60) return `${m}m ago`; const h=Math.floor(m/60); if(h<24) return `${h}h ago`; const d=Math.floor(h/24); return `${d}d ago`;};
+  const toast = (msg) => {const t=$('#toast'); t.textContent=msg; t.classList.remove('hidden'); setTimeout(()=>t.classList.add('hidden'),1500)};
+  const uid = (p='id') => p+'-'+Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4);
+
+  // Storage helpers
+  const J = {
+    get:(k,def)=>{try{return JSON.parse(localStorage.getItem(k))??def}catch{return def}},
+    set:(k,v)=>localStorage.setItem(k,JSON.stringify(v)),
+    del:(k)=>localStorage.removeItem(k)
+  };
+
+  // IndexedDB for video blobs
+  const IDB = (()=>{
+    const DBNAME='instatube'; const STORE='media';
+    let dbp=null; const open=()=> dbp||(dbp=new Promise((res,rej)=>{const r=indexedDB.open(DBNAME,1); r.onupgradeneeded=()=>r.result.createObjectStore(STORE); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error)}));
+    const put=async(k,blob)=>{const db=await open(); return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite'); tx.objectStore(STORE).put(blob,k); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error)});}
+    const get=async(k)=>{const db=await open(); return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readonly'); const rq=tx.objectStore(STORE).get(k); rq.onsuccess=()=>res(rq.result); rq.onerror=()=>rej(rq.error)});}
+    const del=async(k)=>{const db=await open(); return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite'); tx.objectStore(STORE).delete(k); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error)});}
+    return {put,get,del};
+  })();
+
+  // Global state
+  let state = {
+    posts: J.get('IT_posts', []),               // [{id,type,title,caption,createdAt,likes,comments:[{by,text,ts}], dataURL?, mediaKey?}]
+    polls: J.get('IT_polls', []),               // [{id,q,opts:[{id,t,votes}], createdAt}]
+    profile: J.get('IT_profile',{username:'User'}),
+    chat: J.get('IT_chat', []),                 // [{by,text,ts}]
+    voted: new Set(J.get('IT_voted', [])),
+    stories: J.get('IT_stories', []),           // [{id,type,dataURL?,mediaKey?,createdAt,expiresAt}]
+    adminHash: J.get('IT_adminHash', null),
+    adminOn: J.get('IT_adminOn', false),
+    onlyAdmin: J.get('IT_onlyAdmin', true)
+  };
+
+  const save = () => {
+    J.set('IT_posts', state.posts);
+    J.set('IT_polls', state.polls);
+    J.set('IT_profile', state.profile);
+    J.set('IT_chat', state.chat);
+    J.set('IT_voted', Array.from(state.voted));
+    J.set('IT_stories', state.stories);
+    J.set('IT_adminHash', state.adminHash);
+    J.set('IT_adminOn', state.adminOn);
+    J.set('IT_onlyAdmin', state.onlyAdmin);
+  };
+
+  // Simple hash for passphrase (not secure, just for demo)
+  const hash = str => Array.from(new TextEncoder().encode(str)).reduce((a,b)=>((a<<5)-a)+b,0)>>>0;
+
+  // =============== NAVIGATION ===============
+  const activateTab = (name) => {
+    $$('[id^="tab-"]').forEach(s=>s.classList.add('hidden-tab'));
+    $(`#tab-${name}`).classList.remove('hidden-tab');
+    $$('header nav button').forEach(b=>b.classList.remove('bg-white/20'));
+    document.querySelector(`header nav button[data-tab="${name}"]`).classList.add('bg-white/20');
+    if(name==='home') renderFeed();
+    if(name==='polls') renderPolls();
+    if(name==='story') renderStories();
+  };
+  $$('header nav button').forEach(b=> b.addEventListener('click',()=>activateTab(b.dataset.tab)));
+  activateTab('home');
+
+  // =============== INSTALL PROMPT ===============
+  let deferredPrompt;
+  window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); deferredPrompt=e; $('#installBtn').disabled=false; });
+  $('#installBtn').addEventListener('click', async ()=>{ if(!deferredPrompt) return; deferredPrompt.prompt(); deferredPrompt=null; });
+
+  // =============== PROFILE / ADMIN ===============
+  const syncAdminUI = () => {
+    $('#adminBadge').classList.toggle('hidden', !state.adminOn);
+    $('#onlyAdminUploads').checked = !!state.onlyAdmin;
+  };
+  syncAdminUI();
+
+  $('#saveProfileBtn').addEventListener('click', ()=>{ state.profile.username = $('#usernameInput').value.trim()||'User'; save(); toast('Profile saved'); });
+  $('#usernameInput').value = state.profile.username;
+
+  $('#setAdminBtn').addEventListener('click', ()=>{
+    const v = $('#adminPassInput').value.trim(); if(!v){toast('Enter a passphrase'); return;}
+    state.adminHash = hash(v); save(); toast('Admin passphrase set');
+  });
+  $('#toggleAdminBtn').addEventListener('click', ()=>{
+    const v = $('#adminPassInput').value.trim(); if(!v){toast('Enter passphrase to toggle'); return;}
+    if(state.adminHash && state.adminHash===hash(v)) { state.adminOn=!state.adminOn; save(); syncAdminUI(); toast(state.adminOn?'Admin ON':'Admin OFF'); }
+    else toast('Wrong passphrase');
+  });
+  $('#onlyAdminUploads').addEventListener('change', (e)=>{ state.onlyAdmin = e.target.checked; save(); })
+
+  // Light theme toggle
+  const applyTheme = () => {
+    const light = J.get('IT_themeLight', false); document.body.classList.toggle('bg-white', light); document.body.classList.toggle('text-black', light);
+  };
+  $('#themeToggle').checked = J.get('IT_themeLight', false);
+  $('#themeToggle').addEventListener('change', (e)=>{ J.set('IT_themeLight', e.target.checked); applyTheme(); });
+  applyTheme();
+
+  // =============== UPLOAD ===============
+  const dropZone = $('#dropZone');
+  const fileInput = $('#fileInput');
+  const preview = $('#uploadPreview');
+
+  const setPreview = async (file) => {
+    if(!file){ preview.textContent='No preview'; preview.style.backgroundImage='none'; preview.innerHTML='No preview'; return; }
+    if(file.type.startsWith('image/')){
+      const url = URL.createObjectURL(file);
+      preview.innerHTML = `<img src="${url}" alt="preview" class="w-full h-full object-contain">`;
+    } else if(file.type.startsWith('video/')){
+      const v = document.createElement('video'); v.controls=false; v.muted=true; v.src=URL.createObjectURL(file); v.className='w-full h-full object-contain'; preview.innerHTML=''; preview.appendChild(v); v.play().catch(()=>{});
+    } else if(file.type.startsWith('audio/')){
+      preview.innerHTML = `<div class="p-4">Audio selected: <span class="opacity-70 text-sm">${file.name}</span></div>`;
+    } else {
+      preview.textContent='Unsupported file type';
+    }
+  };
+
+  dropZone.addEventListener('click', ()=> fileInput.click());
+  dropZone.addEventListener('dragover', e=>{e.preventDefault(); dropZone.classList.add('bg-white/5')});
+  dropZone.addEventListener('dragleave', ()=> dropZone.classList.remove('bg-white/5'));
+  dropZone.addEventListener('drop', e=>{ e.preventDefault(); dropZone.classList.remove('bg-white/5'); const f=e.dataTransfer.files?.[0]; if(f){ fileInput.files = e.dataTransfer.files; setPreview(f); }});
+  fileInput.addEventListener('change', e=> setPreview(e.target.files?.[0]));
+
+  $('#clearBtn').addEventListener('click', ()=>{ fileInput.value=''; $('#titleInput').value=''; $('#captionInput').value=''; setPreview(null); })
+
+  $('#uploadForm').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    if(state.onlyAdmin && !state.adminOn){ toast('Admin required to publish'); return; }
+    const f=fileInput.files?.[0]; if(!f){toast('Pick a file'); return;}
+    const title=$('#titleInput').value.trim()||f.name; const caption=$('#captionInput').value.trim();
+    const id=uid('post'); const createdAt=now(); let type='other'; let dataURL=null; let mediaKey=null;
+    if(f.type.startsWith('image/')){ type='image'; dataURL = await fileToDataURL(f); }
+    else if(f.type.startsWith('video/')){ type='video'; mediaKey=id; await IDB.put(mediaKey, f); }
+    else if(f.type.startsWith('audio/')){ type='audio'; dataURL = await fileToDataURL(f); }
+    else { toast('Unsupported file'); return; }
+
+    const post={id,type,title,caption,createdAt,likes:0,comments:[], by: state.profile.username, dataURL, mediaKey};
+    state.posts.unshift(post); save(); toast('Published'); fileInput.value=''; $('#titleInput').value=''; $('#captionInput').value=''; setPreview(null); renderFeed(); activateTab('home');
+  });
+
+  const fileToDataURL = (file)=> new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); });
+
+  // =============== FEED ===============
+  const feed = $('#feed');
+  function renderFeed(){
+    const q = $('#searchInput').value.toLowerCase();
+    let posts=[...state.posts];
+    const sort=$('#sortSelect').value;
+    if(sort==='old') posts.sort((a,b)=>a.createdAt-b.createdAt);
+    else if(sort==='title') posts.sort((a,b)=> a.title.localeCompare(b.title));
+    else posts.sort((a,b)=>b.createdAt-a.createdAt);
+    if(q) posts = posts.filter(p=> (p.title+" "+p.caption).toLowerCase().includes(q));
+
+    feed.innerHTML='';
+    for(const p of posts){ feed.appendChild(renderCard(p)); }
+    if(!posts.length){ feed.innerHTML = `<div class="opacity-60 p-8 text-center">No posts yet.</div>`; }
+  }
+
+  function renderCard(p){
+    const tpl = $('#cardTpl').content.cloneNode(true);
+    const card = tpl.querySelector('article');
+    card.dataset.id=p.id;
+    const media = card.querySelector('.aspect-video');
+    const title = card.querySelector('h3'); title.textContent=p.title;
+    const cap = card.querySelector('p'); cap.textContent=p.caption;
+    const time = card.querySelector('.timeago'); time.textContent=fmtAgo(p.createdAt);
+    const likeBtn = card.querySelector('.likeBtn'); likeBtn.querySelector('span').textContent=p.likes;
+
+    if(p.type==='image' && p.dataURL){ media.innerHTML=`<img src="${p.dataURL}" alt="${p.title}" class="w-full h-full object-cover">`; }
+    if(p.type==='audio' && p.dataURL){ media.innerHTML=`<audio controls class="w-full"><source src="${p.dataURL}"></audio>`; }
+    if(p.type==='video' && p.mediaKey){
+      // lazy create object URL
+      IDB.get(p.mediaKey).then(blob=>{ if(!blob) return; const url=URL.createObjectURL(blob); media.innerHTML=`<video controls class="w-full h-full object-contain"><source src="${url}"></video>`; });
+    }
+
+    likeBtn.addEventListener('click', ()=>{ p.likes++; likeBtn.querySelector('span').textContent=p.likes; save(); });
+
+    const commentBtn = card.querySelector('.commentBtn');
+    commentBtn.addEventListener('click', ()=> openComments(p));
+
+    const delBtn = card.querySelector('.deleteBtn'); delBtn.addEventListener('click', async ()=>{
+      if(!state.adminOn){ toast('Admin required'); return; }
+      if(confirm('Delete this post?')){
+        state.posts = state.posts.filter(x=>x.id!==p.id); if(p.mediaKey) await IDB.del(p.mediaKey); save(); renderFeed(); toast('Deleted');
+      }
+    });
+
+    return card;
+  }
+
+  // Comments dialog
+  const cdlg = $('#commentDlg');
+  let commentForId=null;
+  function openComments(p){
+    commentForId=p.id;
+    $('#commentsBody').innerHTML = p.comments.map(c=>`<div class='p-2 rounded-xl bg-white/5'><div class='text-sm font-semibold'>${c.by} <span class='opacity-60 text-xs'>${fmtAgo(c.ts)}</span></div><div>${c.text}</div></div>`).join('');
+    cdlg.showModal();
+  }
+  $('#addCommentBtn').addEventListener('click', (e)=>{
+    e.preventDefault(); const text=$('#commentInput').value.trim(); if(!text) return;
+    const p=state.posts.find(x=>x.id===commentForId); if(!p) return;
+    p.comments.push({by: state.profile.username, text, ts: now()}); $('#commentInput').value=''; save(); openComments(p);
+  })
+
+  // Search + sort + keyboard
+  $('#searchInput').addEventListener('input', renderFeed);
+  $('#sortSelect').addEventListener('change', renderFeed);
+  window.addEventListener('keydown', (e)=>{
+    if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='k'){ e.preventDefault(); $('#searchInput').focus(); }
+    if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='n'){ e.preventDefault(); activateTab('upload'); fileInput.click(); }
+  });
+
+  // Export/Import
+  $('#exportBtn').addEventListener('click', async ()=>{
+    const dump = {...state, voted:Array.from(state.voted)};
+    const blob = new Blob([JSON.stringify(dump,null,2)], {type:'application/json'});
+    const a=el('a',{href:URL.createObjectURL(blob), download:'instatube-backup.json'}); a.click();
+  });
+  $('#importInput').addEventListener('change', async (e)=>{
+    const f=e.target.files?.[0]; if(!f) return; const txt=await f.text();
+    try{ const obj=JSON.parse(txt); state.posts=obj.posts||[]; state.polls=obj.polls||[]; state.profile=obj.profile||state.profile; state.chat=obj.chat||[]; state.voted = new Set(obj.voted||[]); state.stories=obj.stories||[]; state.adminHash=obj.adminHash||null; state.onlyAdmin=!!obj.onlyAdmin; save(); toast('Imported'); renderFeed(); renderPolls(); renderStories(); }
+    catch{ toast('Invalid file'); }
+  });
+
+  // =============== POLLS ===============
+  const pollOptions = $('#pollOptions');
+  const mkOpt = (val='') => `<div class='flex gap-2'><input class="bg-white/5 rounded-xl px-3 py-2 flex-1" placeholder="Option" value="${val}"><button type='button' class='removeOpt px-2 rounded-lg bg-white/10'>✕</button></div>`;
+  const ensureTwo = ()=>{ if(!pollOptions.children.length){ pollOptions.insertAdjacentHTML('beforeend', mkOpt()); pollOptions.insertAdjacentHTML('beforeend', mkOpt()); }};
+  ensureTwo();
+
+  $('#addOptionBtn').addEventListener('click', ()=> pollOptions.insertAdjacentHTML('beforeend', mkOpt()));
+  pollOptions.addEventListener('click', (e)=>{ if(e.target.closest('.removeOpt')) e.target.closest('div').remove(); if(pollOptions.children.length<2) ensureTwo(); });
+
+  $('#pollForm').addEventListener('submit', (e)=>{
+    e.preventDefault(); if(state.onlyAdmin && !state.adminOn){ toast('Admin required to create'); return; }
+    const q=$('#pollQuestion').value.trim(); if(!q) return toast('Enter a question');
+    const opts=[...pollOptions.querySelectorAll('input')].map(i=>i.value.trim()).filter(Boolean);
+    if(opts.length<2) return toast('At least 2 options');
+    const poll={id:uid('poll'), q, opts:opts.map(t=>({id:uid('opt'), t, votes:0})), createdAt: now()};
+    state.polls.unshift(poll); save(); $('#pollQuestion').value=''; pollOptions.innerHTML=''; ensureTwo(); renderPolls(); toast('Poll created');
+  });
+
+  function renderPolls(){
+    const box = $('#pollList'); box.innerHTML='';
+    for(const p of state.polls){
+      const total = p.opts.reduce((a,b)=>a+b.votes,0)||1;
+      const wrap = el('div',{className:'glass rounded-2xl p-4 space-y-3'});
+      wrap.innerHTML = `<div class='font-semibold'>${p.q}</div>` + p.opts.map(o=>{
+        const pct = Math.round((o.votes/total)*100);
+        return `<div class='space-y-1'>
+            <div class='flex items-center justify-between text-sm'><span>${o.t}</span><span class='opacity-70'>${pct}% (${o.votes})</span></div>
+            <div class='w-full h-2 bg-white/10 rounded-full overflow-hidden'><div style='width:${pct}%' class='h-full brand-bg'></div></div>
+            <button data-poll='${p.id}' data-opt='${o.id}' class='vote px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20'>Vote</button>
+        </div>`;
+      }).join('');
+      box.appendChild(wrap);
     }
   }
 
-  // --- TAB SWITCH ---
-  function switchTab(tab){
-    document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
-    const el = document.getElementById(tab);
-    if(el) el.classList.add('active');
-    if(tab === 'home') renderPosts();
-    if(tab === 'polls') renderPolls();
-    if(tab === 'story') renderStories();
-  }
-  window.switchTab = switchTab;
-
-  // --- POSTS ---
-  function renderPosts(){
-    const feed = document.getElementById('videoFeed');
-    feed.innerHTML='';
-    window.posts.forEach((p,i)=>{
-      const card = document.createElement('div'); card.className='card';
-
-      // Media
-      let mediaWrapper = document.createElement('div');
-      if(p.type==='image') { const img=document.createElement('img'); img.src=p.url; mediaWrapper.appendChild(img); }
-      else if(p.type==='audio') { const audio=document.createElement('audio'); audio.controls=true; audio.src=p.url; mediaWrapper.appendChild(audio); }
-      else { const video=document.createElement('video'); video.controls=true; video.src=p.url; mediaWrapper.appendChild(video); }
-
-      // Title & caption
-      const title=document.createElement('h3'); title.textContent=p.title;
-      const cap=document.createElement('p'); cap.textContent=p.caption;
-
-      // Likes
-      const likeBtn=document.createElement('button'); likeBtn.textContent=`❤️ ${p.likes}`; likeBtn.className='action btn-red';
-      likeBtn.addEventListener('click', ()=>{
-        if(!p.liked){ p.likes++; p.liked=true; } else { p.likes--; p.liked=false; }
-        localStorage.setItem('posts', JSON.stringify(window.posts));
-        renderPosts();
-      });
-
-      // Comments
-      const commentBox=document.createElement('div'); commentBox.className='comment-box';
-      const commentsDiv=document.createElement('div'); commentsDiv.innerHTML=p.comments.map(c=>`<div class="comment">${escapeHtml(c)}</div>`).join('');
-      const cinput=document.createElement('input'); cinput.type='text'; cinput.placeholder='Add comment';
-      const cbtn=document.createElement('button'); cbtn.className='action btn-dark'; cbtn.textContent='Send';
-      cbtn.addEventListener('click',()=>{ if(cinput.value){ p.comments.push(cinput.value); localStorage.setItem('posts', JSON.stringify(window.posts)); renderPosts(); } });
-      commentBox.appendChild(commentsDiv); commentBox.appendChild(cinput); commentBox.appendChild(cbtn);
-
-      // Delete post button
-      const delBtn=document.createElement('button'); delBtn.className='action btn-dark'; delBtn.textContent='Delete'; 
-      delBtn.addEventListener('click',()=>{ if(confirm('Delete this post?')){ window.posts.splice(i,1); localStorage.setItem('posts',JSON.stringify(window.posts)); renderPosts(); } });
-
-      card.appendChild(title); card.appendChild(mediaWrapper); card.appendChild(cap); card.appendChild(likeBtn); card.appendChild(commentBox); card.appendChild(delBtn);
-      feed.appendChild(card);
-    });
-  }
-
-  function escapeHtml(str){ if(!str && str!==0) return ''; return String(str).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[m])); }
-
-  // --- UPLOAD ---
-  function uploadPost(){
-    const file=document.getElementById('fileInput').files[0];
-    const title=document.getElementById('titleInput').value.trim();
-    const caption=document.getElementById('captionInput').value.trim();
-    if(!file||!title)return alert('Title & file required');
-
-    const reader=new FileReader();
-    reader.onload=(e)=>{
-      let type='video';
-      if(file.type.startsWith('image/')) type='image';
-      else if(file.type.startsWith('audio/')) type='audio';
-      const url=e.target.result;
-      window.posts.unshift({ title, caption, url, type, likes:0, liked:false, comments:[], superchats:[], uploader:window.profile.name||'Anonymous' });
-      localStorage.setItem('posts', JSON.stringify(window.posts));
-      renderPosts();
-      document.getElementById('uploadForm').reset();
-    };
-    if(file.type.startsWith('video/')) reader.readAsDataURL(file);
-    else reader.readAsDataURL(file);
-  }
-
-  document.getElementById('uploadForm').addEventListener('submit', e=>{ e.preventDefault(); uploadPost(); });
-
-  // --- POLLS ---
-  function addPollOption(){ const inp=document.createElement('input'); inp.placeholder='Option'; inp.className='poll-opt'; document.getElementById('pollOptions').appendChild(inp); }
-  document.getElementById('addPollOption').addEventListener('click', e=>{ e.preventDefault(); addPollOption(); });
-
-  function createPoll(){
-    const q=document.getElementById('pollQuestion').value.trim();
-    const opts=Array.from(document.querySelectorAll('.poll-opt')).map(i=>i.value.trim()).filter(Boolean);
-    if(!q||opts.length<2)return alert('Need question & 2+ options');
-    window.polls.unshift({q,opts,votes:Array(opts.length).fill(0)});
-    localStorage.setItem('polls', JSON.stringify(window.polls));
-    renderPolls();
-    document.getElementById('pollQuestion').value='';
-    document.querySelectorAll('.poll-opt').forEach((n,i)=>{ if(i>1) n.remove(); else n.value=''; });
-  }
-  document.getElementById('createPoll').addEventListener('click', e=>{ e.preventDefault(); createPoll(); });
-
-  function renderPolls(){
-    const list=document.getElementById('pollList'); list.innerHTML='';
-    window.polls.forEach((p,i)=>{
-      const div=document.createElement('div'); div.className='card';
-      const q=document.createElement('h4'); q.textContent=p.q; div.appendChild(q);
-      const optsWrap=document.createElement('div');
-      p.opts.forEach((o,idx)=>{
-        const btn=document.createElement('button'); btn.className='action btn-dark'; btn.style.display='block'; btn.style.margin='6px 0';
-        btn.textContent=`${o} (${p.votes[idx]})`; btn.addEventListener('click',()=>{ p.votes[idx]++; localStorage.setItem('polls',JSON.stringify(window.polls)); renderPolls(); });
-        optsWrap.appendChild(btn);
-      });
-      div.appendChild(optsWrap); list.appendChild(div);
-    });
-  }
-
-  // --- STREAM KEY ---
-  function generateStreamKey(){ document.getElementById('streamKey').textContent='LIVE-'+Math.random().toString(36).substring(2,10).toUpperCase(); }
-  document.getElementById('genKey').addEventListener('click', generateStreamKey);
-
-  // --- WEBCAM LIVE ---
-  const liveVideo=document.getElementById('liveVideo');
-  document.getElementById('startWebcam').addEventListener('click', async ()=>{
-    try{
-      const stream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});
-      liveVideo.srcObject=stream;
-      liveVideo.play();
-    } catch(e){ alert('Webcam error: '+e.message); }
+  $('#pollList').addEventListener('click', (e)=>{
+    const btn = e.target.closest('.vote'); if(!btn) return; const pid=btn.dataset.poll, oid=btn.dataset.opt;
+    if(state.voted.has(pid)) return toast('Already voted');
+    const p = state.polls.find(x=>x.id===pid); const o = p?.opts.find(x=>x.id===oid); if(!o) return;
+    o.votes++; state.voted.add(pid); save(); renderPolls();
   });
 
-  // --- LIVE CHAT ---
-  const liveComments=document.getElementById('liveComments');
-  const liveCommentInput=document.getElementById('liveCommentInput');
-  document.getElementById('sendLiveComment').addEventListener('click', ()=>{
-    const val=liveCommentInput.value.trim();
-    if(!val)return;
-    const div=document.createElement('div'); div.className='comment'; div.textContent=(window.profile.name||'Anonymous')+': '+val;
-    liveComments.appendChild(div);
-    liveCommentInput.value='';
+  // =============== LIVE (webcam + chat) ===============
+  let stream=null; let recorder=null; let chunks=[];
+  $('#startWebcamBtn').addEventListener('click', async ()=>{
+    if(state.onlyAdmin && !state.adminOn) return toast('Admin required');
+    try{ stream = await navigator.mediaDevices.getUserMedia({video:true, audio:true}); $('#liveVideo').srcObject=stream; }
+    catch(err){ toast('Permission denied'); }
+  });
+  $('#stopWebcamBtn').addEventListener('click', ()=>{ stream?.getTracks().forEach(t=>t.stop()); $('#liveVideo').srcObject=null; stream=null; });
+  $('#recordBtn').addEventListener('click', ()=>{
+    if(!stream) return toast('Start webcam first');
+    if(recorder?.state==='recording'){ recorder.stop(); return; }
+    chunks=[]; recorder=new MediaRecorder(stream); recorder.ondataavailable=e=>chunks.push(e.data); recorder.onstop=async ()=>{
+      const blob=new Blob(chunks,{type:'video/webm'}); const id=uid('clip'); await IDB.put(id, blob); const post={id, type:'video', title:'Live clip', caption:'Recorded from webcam', createdAt:now(), likes:0, comments:[], by:state.profile.username, mediaKey:id}; state.posts.unshift(post); save(); renderFeed(); toast('Clip saved to Home'); activateTab('home');
+    }; recorder.start(); toast('Recording… click again to stop');
   });
 
-  // --- PROFILE ---
-  const profileName=document.getElementById('profileName');
-  document.getElementById('saveProfile').addEventListener('click', ()=>{
-    window.profile.name=profileName.value.trim()||'Anonymous';
-    localStorage.setItem('profile', JSON.stringify(window.profile));
-    alert('Profile saved!');
-  });
-  if(window.profile.name) profileName.value=window.profile.name;
+  // Stream key
+  $('#genKeyBtn').addEventListener('click', ()=>{ if(state.onlyAdmin && !state.adminOn) return toast('Admin required'); $('#streamKey').value = uid('rtmp'); navigator.clipboard.writeText($('#streamKey').value).catch(()=>{}); toast('Key generated & copied'); });
 
-  // --- STORIES ---
-  document.getElementById('storyForm').addEventListener('submit', e=>{
-    e.preventDefault();
-    const text=document.getElementById('storyText').value.trim();
-    if(!text) return;
-    window.stories.unshift({text,by:window.profile.name||'Anonymous',time:new Date().toLocaleTimeString()});
-    localStorage.setItem('stories', JSON.stringify(window.stories));
-    document.getElementById('storyText').value='';
-    renderStories();
-  });
-  function renderStories(){
-    const feed=document.getElementById('storyFeed'); feed.innerHTML='';
-    window.stories.forEach((s,i)=>{
-      const div=document.createElement('div'); div.className='card';
-      div.innerHTML=`<b>${escapeHtml(s.by)}</b> <span class="small">${s.time}</span><p>${escapeHtml(s.text)}</p>`;
-      const del=document.createElement('button'); del.className='action btn-dark'; del.textContent='Delete';
-      del.addEventListener('click',()=>{ if(confirm('Delete story?')){ window.stories.splice(i,1); localStorage.setItem('stories',JSON.stringify(window.stories)); renderStories(); } });
-      div.appendChild(del);
-      feed.appendChild(div);
-    });
+  // Chat
+  function renderChat(){ $('#chatBox').innerHTML = state.chat.map(c=>`<div class='mb-1'><span class='font-semibold'>${c.by}</span>: ${c.text} <span class='opacity-60 text-xs'>${fmtAgo(c.ts)}</span></div>`).join(''); $('#chatBox').scrollTop = 1e9; }
+  renderChat();
+  $('#chatForm').addEventListener('submit', (e)=>{ e.preventDefault(); const text=$('#chatInput').value.trim(); if(!text) return; state.chat.push({by: state.profile.username, text, ts: now()}); $('#chatInput').value=''; save(); renderChat(); });
+
+  // =============== STORIES ===============
+  const day = 24*60*60*1000;
+  function purgeStories(){ const t=now(); state.stories = state.stories.filter(s=> s.expiresAt>t); save(); }
+  function renderStories(){ purgeStories();
+    // List
+    const list = $('#storyList'); list.innerHTML='';
+    for(const s of state.stories){ const item=el('div',{className:'glass rounded-2xl overflow-hidden'}); item.innerHTML = storyMediaHTML(s); list.appendChild(item); }
+    // Rail
+    const rail = $('#storiesRail'); rail.innerHTML = state.stories.map(s=>`<button class='shrink-0 w-16 h-16 rounded-full overflow-hidden ring-story'><img class='w-full h-full object-cover' src='${s.thumb||placeholderThumb()}' alt='story'></button>`).join('');
   }
-
-  // --- INIT ---
-  seedDemoData();
-  renderPosts();
-  renderPolls();
   renderStories();
-  document.querySelectorAll('.nav-btn').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tab)));
 
-})();
-</script>
+  function storyMediaHTML(s){ if(s.type==='image' && s.dataURL) return `<img src='${s.dataURL}' class='w-full h-full object-cover' alt='story'>`; if(s.type==='video' && s.mediaKey) return `<video controls class='w-full h-full'><source src='' ></video>`; return `<div class='p-6 text-sm opacity-70'>Story</div>`; }
+
+  $('#storyForm').addEventListener('submit', async (e)=>{
+    e.preventDefault(); if(state.onlyAdmin && !state.adminOn) return toast('Admin required'); const f=$('#storyFile').files?.[0]; if(!f) return toast('Pick a file');
+    const id=uid('story'); const createdAt=now(); const expiresAt=createdAt+day;
+    let s={id, createdAt, expiresAt, type:'image'};
+    if(f.type.startsWith('image/')){ s.type='image'; s.dataURL=await fileToDataURL(f); s.thumb=s.dataURL; }
+    else if(f.type.startsWith('video/')){ s.type='video'; s.mediaKey=id; await IDB.put(id, f); s.thumb=placeholderThumb(); }
+    state.stories.unshift(s); save(); $('#storyFile').value=''; renderStories(); toast('Story posted');
+  })
+
+  const placeholderThumb = ()=>`data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 120'><rect width='200' height='120' fill='#111'/><path d='M140 60 80 95V25z' fill='%23ff0000'/></svg>`)}`;
+
+  // =============== SMALL UX EXTRAS ===============
+  // Focus states on nav
+  $$('header nav button').forEach(b=>{ b.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); b.click(); }}); });
+  // Keep timeago fresh
+  setInterval(()=> $$('#feed .timeago').forEach(t=>{ const id=t.closest('article')?.dataset.id; const p=state.posts.find(x=>x.id===id); if(p) t.textContent=fmtAgo(p.createdAt); }), 30_000);
+
+  // Initial feed render
+  renderFeed();
+  </script>
 </body>
 </html>
