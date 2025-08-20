@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>InstaTube — Live • Upload • Polls • Story</title>
-  <meta name="description" content="InstaTube: a clean, fast, admin‑first YouTube × Instagram hybrid. Upload, go live (webcam), run polls, stories, chat. Data persists locally.">
+  <meta name="description" content="InstaTube: a clean, fast, admin-first YouTube × Instagram hybrid. Upload, go live (webcam), run polls, stories, chat. Data persists locally.">
   <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -99,7 +99,7 @@ self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>
         </label>
       </div>
       <div id="feed" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"></div>
-      <p class="opacity-60 text-sm">Images & audio saved as data‑URLs. Videos are persisted in IndexedDB. Nothing is uploaded to a server.</p>
+      <p class="opacity-60 text-sm">Images & audio saved as data-URLs. Videos are persisted in IndexedDB. Nothing is uploaded to a server.</p>
     </section>
 
     <!-- UPLOAD -->
@@ -128,7 +128,7 @@ self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>
             <h3 class="font-semibold mb-2">Tips</h3>
             <ul class="list-disc list-inside opacity-80 text-sm space-y-1">
               <li>Videos are stored in your browser using IndexedDB and won’t leave your device.</li>
-              <li>Images & audio are embedded as data‑URLs in the feed for fast load.</li>
+              <li>Images & audio are embedded as data-URLs in the feed for fast load.</li>
               <li>You can export/import all data from the Home tab.</li>
             </ul>
           </div>
@@ -233,7 +233,7 @@ self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>
           <input id="storyFile" type="file" accept="image/*,video/*" class="block" />
           <div class="flex gap-2 items-center">
             <button class="brand-bg text-white px-4 py-2 rounded-xl">Post Story</button>
-            <span class="text-sm opacity-70">Stories auto‑expire after 24 hours.</span>
+            <span class="text-sm opacity-70">Stories auto-expire after 24 hours.</span>
           </div>
         </form>
         <div>
@@ -302,7 +302,7 @@ self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>
   // IndexedDB for video blobs
   const IDB = (()=>{
     const DBNAME='instatube'; const STORE='media';
-    let dbp=null; const open=()=> dbp||(dbp=new Promise((res,rej)=>{const r=indexedDB.open(DBNAME,1); r.onupgradeneeded=()=>r.result.createObjectStore(STORE); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error)}));
+    let dbp=null; const open=()=> dbp||(dbp=new Promise((res,rej)=>{const r=indexedDB.open(DBNAME,1); r.onupgradeneeded=()=>{ try{ r.result.createObjectStore(STORE); }catch(e){} }; r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error)}));
     const put=async(k,blob)=>{const db=await open(); return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite'); tx.objectStore(STORE).put(blob,k); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error)});}
     const get=async(k)=>{const db=await open(); return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readonly'); const rq=tx.objectStore(STORE).get(k); rq.onsuccess=()=>res(rq.result); rq.onerror=()=>rej(rq.error)});}
     const del=async(k)=>{const db=await open(); return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite'); tx.objectStore(STORE).delete(k); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error)});}
@@ -342,7 +342,8 @@ self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>
     $$('[id^="tab-"]').forEach(s=>s.classList.add('hidden-tab'));
     $(`#tab-${name}`).classList.remove('hidden-tab');
     $$('header nav button').forEach(b=>b.classList.remove('bg-white/20'));
-    document.querySelector(`header nav button[data-tab="${name}"]`).classList.add('bg-white/20');
+    const btn = document.querySelector(`header nav button[data-tab="${name}"]`);
+    if(btn) btn.classList.add('bg-white/20');
     if(name==='home') renderFeed();
     if(name==='polls') renderPolls();
     if(name==='story') renderStories();
@@ -454,11 +455,20 @@ self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>
     const time = card.querySelector('.timeago'); time.textContent=fmtAgo(p.createdAt);
     const likeBtn = card.querySelector('.likeBtn'); likeBtn.querySelector('span').textContent=p.likes;
 
+    // Media rendering: image | audio | video (dataURL or mediaKey)
     if(p.type==='image' && p.dataURL){ media.innerHTML=`<img src="${p.dataURL}" alt="${p.title}" class="w-full h-full object-cover">`; }
-    if(p.type==='audio' && p.dataURL){ media.innerHTML=`<audio controls class="w-full"><source src="${p.dataURL}"></audio>`; }
-    if(p.type==='video' && p.mediaKey){
-      // lazy create object URL
-      IDB.get(p.mediaKey).then(blob=>{ if(!blob) return; const url=URL.createObjectURL(blob); media.innerHTML=`<video controls class="w-full h-full object-contain"><source src="${url}"></video>`; });
+    else if(p.type==='audio' && p.dataURL){ media.innerHTML=`<audio controls class="w-full"><source src="${p.dataURL}"></audio>`; }
+    else if(p.type==='video'){
+      if(p.dataURL){
+        media.innerHTML=`<video controls class="w-full h-full object-contain"><source src="${p.dataURL}"></video>`;
+      } else if(p.mediaKey){
+        // lazy create object URL
+        IDB.get(p.mediaKey).then(blob=>{ if(!blob) return; const url=URL.createObjectURL(blob); media.innerHTML=`<video controls class="w-full h-full object-contain"><source src="${url}"></video>`; });
+      } else if(p.url){
+        media.innerHTML=`<video controls class="w-full h-full object-contain"><source src="${p.url}"></video>`;
+      } else {
+        media.innerHTML=`<div class="p-6 text-sm opacity-70">Video</div>`;
+      }
     }
 
     likeBtn.addEventListener('click', ()=>{ p.likes++; likeBtn.querySelector('span').textContent=p.likes; save(); });
@@ -473,7 +483,28 @@ self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>
       }
     });
 
+    // Share: copy a deep link (hash with id)
+    const shareBtn = el('button',{className:'px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20', innerText:'Share'});
+    shareBtn.addEventListener('click', ()=>{
+      const link = `${location.origin}${location.pathname}#post=${p.id}`;
+      navigator.clipboard?.writeText(link).then(()=>toast('Link copied'));
+    });
+    const actions = card.querySelector('.flex.items-center.gap-2');
+    if(actions) actions.appendChild(shareBtn);
+
     return card;
+  }
+
+  // Open by hash if present
+  function tryOpenFromHash(){
+    const h = location.hash.slice(1);
+    if(!h) return;
+    const m = h.match(/post=([^&]+)/);
+    if(m){
+      const id = m[1];
+      const p = state.posts.find(x=>x.id===id);
+      if(p){ activateTab('home'); setTimeout(()=>{ const a = document.querySelector(`#feed article[data-id="${id}"]`); if(a) a.scrollIntoView({behavior:'smooth', block:'center'}); },200); }
+    }
   }
 
   // Comments dialog
@@ -531,7 +562,7 @@ self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>
   function renderPolls(){
     const box = $('#pollList'); box.innerHTML='';
     for(const p of state.polls){
-      const total = p.opts.reduce((a,b)=>a+b.votes,0)||1;
+      const total = p.opts.reduce((a,b)=>a+b.votes,0) || 1;
       const wrap = el('div',{className:'glass rounded-2xl p-4 space-y-3'});
       wrap.innerHTML = `<div class='font-semibold'>${p.q}</div>` + p.opts.map(o=>{
         const pct = Math.round((o.votes/total)*100);
@@ -586,7 +617,6 @@ self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>
     // Rail
     const rail = $('#storiesRail'); rail.innerHTML = state.stories.map(s=>`<button class='shrink-0 w-16 h-16 rounded-full overflow-hidden ring-story'><img class='w-full h-full object-cover' src='${s.thumb||placeholderThumb()}' alt='story'></button>`).join('');
   }
-  renderStories();
 
   function storyMediaHTML(s){ if(s.type==='image' && s.dataURL) return `<img src='${s.dataURL}' class='w-full h-full object-cover' alt='story'>`; if(s.type==='video' && s.mediaKey) return `<video controls class='w-full h-full'><source src='' ></video>`; return `<div class='p-6 text-sm opacity-70'>Story</div>`; }
 
@@ -607,8 +637,33 @@ self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>
   // Keep timeago fresh
   setInterval(()=> $$('#feed .timeago').forEach(t=>{ const id=t.closest('article')?.dataset.id; const p=state.posts.find(x=>x.id===id); if(p) t.textContent=fmtAgo(p.createdAt); }), 30_000);
 
-  // Initial feed render
-  renderFeed();
+  // =============== DEMO POST (only if feed empty) ===============
+  (async ()=>{
+    if(!state.posts.length){
+      // Demo uses an external short MP4 for convenience (not persisted to IDB).
+      const demo = {
+        id: uid('demo'),
+        type: 'video',
+        title: 'Demo: Big Buck Bunny (sample)',
+        caption: 'Welcome to InstaTube — demo video. Try Like, Comment, Record, or Upload your own.',
+        createdAt: now()-1000*60*60,
+        likes: 12,
+        comments: [{by:'DemoUser', text:'Nice demo!', ts: now()-1000*60}],
+        by: 'InstaTube',
+        url: 'https://www.w3schools.com/html/mov_bbb.mp4' // external sample video
+      };
+      state.posts.unshift(demo);
+      save();
+    }
+    renderFeed();
+    tryOpenFromHash();
+    renderPolls();
+    renderStories();
+  })();
+
+  // Open comments if hash comment param present (not required but handy)
+  // =============== OPEN HASH HANDLING DONE ABOVE ===============
+
   </script>
 </body>
 </html>
